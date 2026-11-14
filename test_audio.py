@@ -17,4 +17,19 @@ class AnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(low['frames'][0]['centroid'],220,delta=25)
         self.assertAlmostEqual(high['frames'][0]['centroid'],2200,delta=25)
         self.assertGreater(low['frames'][0]['bands'][0],high['frames'][0]['bands'][0])
+
+class MusicTests(unittest.TestCase):
+    def test_polyphonic_tracking_and_silence(self):
+        from audio_analysis import WINDOW,fft
+        from music_features import voices
+        def spectrum(freqs):
+            x=[sum(a*math.sin(2*math.pi*hz*i/RATE) for hz,a in freqs)*(.5-.5*math.cos(2*math.pi*i/(WINDOW-1))) for i in range(WINDOW)]
+            return [abs(z)**2 for z in fft(x)[:WINDOW//2+1]]
+        track=voices(spectrum([(523.25,.4),(130.81,.16),(164.81,.12),(196,.1)]),RATE,WINDOW)
+        self.assertAlmostEqual(track[0]['pitch'],72,delta=.6)
+        self.assertGreaterEqual(sum(v['pitch'] is not None for v in track),3)
+        changed=voices(spectrum([(659.25,.4),(130.81,.16),(164.81,.12),(196,.1)]),RATE,WINDOW,track)
+        self.assertAlmostEqual(changed[0]['pitch'],76,delta=.6)
+        self.assertTrue(all(v['pitch'] is None for v in voices([0]*1025,RATE,WINDOW)))
+
 if __name__=='__main__':unittest.main()

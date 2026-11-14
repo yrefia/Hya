@@ -20,7 +20,7 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(403,b'{}');return
         try:
             size=int(self.headers.get('Content-Length','0'))
-            if not 0<size<=32*1024*1024:raise ValueError('请选择小于 32 MB 的音频。')
+            if not 0<size<=128*1024*1024:raise ValueError('请选择小于 128 MB 的音频。')
             body=self.rfile.read(size)
             with tempfile.TemporaryDirectory(prefix='hya-') as folder:
                 source=Path(folder)/'input';target=Path(folder)/'audio.wav';source.write_bytes(body)
