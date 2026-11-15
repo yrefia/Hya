@@ -1,8 +1,8 @@
 import math, cmath, wave, struct
 from music_features import voices
 
-RATE, WINDOW, HOP = 22050, 2048, 1024
-VERSION = 'hya-python-2'
+RATE, WINDOW, HOP = 22050, 4096, 1024
+VERSION = 'hya-python-3'
 
 def fft(values):
     n = len(values)
@@ -33,7 +33,15 @@ def analyze(path):
         tracks=voices(spectrum,RATE,WINDOW,previous)
         previous=tracks
         flatness=math.exp(sum(math.log(max(p,1e-20)) for p in spectrum)/len(spectrum))/(total/len(spectrum)+1e-20) if total>1e-12 else 0
-        frames.append({'t':start/RATE,'energy':max(0,min(1,(20*math.log10(max(rms,1e-9))+60)/60)), 'rms':rms,'centroid':centroid,'bands':bands,'voices':tracks,'noise':min(1,flatness*4)})
+        frames.append({'t':min(count/RATE,(start+WINDOW/2)/RATE),'energy':max(0,min(1,(20*math.log10(max(rms,1e-9))+60)/60)), 'rms':rms,'centroid':centroid,'bands':bands,'voices':tracks,'noise':min(1,flatness*4)})
+    from statistics import median
+    original=[[dict(v) for v in f['voices']] for f in frames]
+    for i,frame in enumerate(frames):
+        for j,v in enumerate(frame['voices']):
+            if v['pitch'] is None:continue
+            neighbors=[original[k][j]['pitch'] for k in range(max(0,i-1),min(len(frames),i+2)) if original[k][j]['pitch'] is not None]
+            if len(neighbors)==3 and abs(v['pitch']-median(neighbors))>3:
+                v.update(pitch=None,strength=0,confidence=0)
     shape=[]
     for i in range(180):
         segment=frames[i*len(frames)//180:max(i*len(frames)//180+1,(i+1)*len(frames)//180)]

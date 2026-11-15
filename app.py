@@ -1,6 +1,7 @@
 """Local-only Python UI server. No third-party dependencies."""
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+import os
 import tempfile, subprocess, json, webbrowser, threading, secrets, urllib.parse
 from audio_analysis import analyze
 
@@ -12,6 +13,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code);self.send_header('Content-Type',kind);self.send_header('Content-Length',str(len(data)));self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(data)
     def do_GET(self):
         parsed=urllib.parse.urlparse(self.path)
+        if parsed.path=='/sample' and urllib.parse.parse_qs(parsed.query).get('token')==[TOKEN]:
+            sample=os.environ.get('HYA_TEST_AUDIO')
+            if sample and Path(sample).is_file():self.reply(200,Path(sample).read_bytes(),'audio/mpeg')
+            else:self.reply(404,b'{}')
+            return
         if parsed.path=='/' and urllib.parse.parse_qs(parsed.query).get('token')==[TOKEN]:
             self.reply(200,(ROOT/'ui.html').read_bytes(),'text/html; charset=utf-8')
         else:self.reply(404,b'{}')
