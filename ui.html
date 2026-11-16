@@ -1,41 +1,170 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hya · 声音的形状</title>
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hya · 声音的形状</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101c24;color:#e9eee6;font:15px -apple-system,BlinkMacSystemFont,sans-serif}main{max-width:1200px;margin:auto;padding:36px}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:36px;letter-spacing:-1px;margin:5px 0 12px}p,small{color:#91abae;line-height:1.7}.tag{font-size:11px;letter-spacing:3px;color:#c4b68e}.controls{display:flex;gap:12px;margin:24px 0;flex-wrap:wrap}button,.upload{border:1px solid #365059;background:#203740;color:#e9eee6;border-radius:10px;padding:12px 18px;cursor:pointer;font:inherit}button:hover,.upload:hover{background:#31515a}button:disabled{opacity:.4;cursor:default}.primary{background:#b2d5c4;color:#172a29;border:0}.panel{background:#14252e;border:1px solid #29404a;border-radius:20px;padding:22px}.grid{display:grid;grid-template-columns:1fr;gap:20px;margin:20px 0}.eyebrow{font-size:11px;letter-spacing:2px;color:#91abae}canvas{width:100%;display:block}#finger{height:480px}#charts{height:320px}.stats{display:flex;justify-content:space-between;gap:8px;margin-top:20px}.stats b{display:block;font-size:22px;color:#d9c598;margin-bottom:5px}.stats span{font-size:12px;color:#91abae}audio{width:100%;margin:16px 0}#status{min-height:24px}footer{display:flex;justify-content:space-between;gap:20px}a{color:#b2d5c4}input:focus-visible,button:focus-visible{outline:2px solid #dfbf85}@media(max-width:760px){main{padding:20px}.grid{grid-template-columns:1fr}header{display:block}#finger{height:300px}}
-</style><main><header><div><div class="tag">HYA / EXPERIMENT 001</div><h1>让旋律，成为线条。</h1><p>旋律走向、伴随音高与背景纹理，在时间里交织。</p></div><small>本机运行 · 无需账号 · 离线分析</small></header>
-<div class="controls"><label class="upload primary">导入音频<input id="file" type="file" accept="audio/*" hidden></label><button id="sample">载入测试曲目</button><button id="demo">体验示例声音</button><button id="save" disabled>导出指纹参数</button><button id="png" disabled>保存指纹图片</button></div>
-<div id="status" role="status">从示例开始，或导入 WAV / MP3 / M4A / AIFF。最长 10 分钟，最大 128 MB。</div>
-<div class="grid"><section class="panel"><div class="eyebrow">01 / MELODY / HARMONY</div><canvas id="finger" aria-label="滚动音高轨迹：横轴时间，纵轴音高"></canvas><small>金色：旋律候选；绿色：低音伴随候选。两条轨道使用相同音高刻度，历史线条只向左平移。低可信片段留白。</small></section><section class="panel"><div class="eyebrow">02 / ACOUSTIC FEATURES</div><canvas id="charts" aria-label="能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></section></div>
-<section class="panel"><div class="eyebrow">03 / LISTEN & OBSERVE</div><audio id="audio" controls></audio><footer><small>播放、暂停或拖动进度，观察同一枚指纹的动态变化。</small><label><input id="motion" type="checkbox" checked>连续滚动</label></footer></section><p>这是混合音频的音高轨迹估计，不是人声 / 乐器分离。主旋律可能被较响的伴奏取代，复杂和弦也可能漏检。相同输入在同一算法版本下产生相同参数；不承诺转码后相同或跨设备像素级一致。</p></main>
+*{box-sizing:border-box}body{margin:0;background:#101c24;color:#e9eee6;font:15px -apple-system,BlinkMacSystemFont,sans-serif}main{max-width:1200px;margin:auto;padding:36px}header{display:flex;justify-content:space-between;align-items:center;gap:24px}h1{font-size:36px;letter-spacing:-1px;margin:5px 0 12px}p,small{color:#91abae;line-height:1.7}.tag{font-size:11px;letter-spacing:3px;color:#c4b68e}.controls{display:flex;gap:12px;margin:24px 0 16px;flex-wrap:wrap;align-items:center}button,.upload,select{border:1px solid #365059;background:#203740;color:#e9eee6;border-radius:10px;padding:12px 18px;cursor:pointer;font:inherit}button:hover,.upload:hover{background:#31515a}button:disabled,select:disabled,.upload:has(input:disabled){opacity:.4;cursor:default}.primary{background:#b2d5c4;color:#172a29;border:0}.panel{background:#14252e;border:1px solid #29404a;border-radius:20px;padding:22px}.grid{display:grid;grid-template-columns:1fr;gap:20px;margin:20px 0}.eyebrow{font-size:11px;letter-spacing:2px;color:#91abae}canvas{width:100%;display:block}#finger{height:590px}#charts{height:260px}.stats{display:flex;justify-content:space-between;gap:8px;margin-top:20px}.stats b{display:block;font-size:22px;color:#d9c598;margin-bottom:5px}.stats span{font-size:12px;color:#91abae}audio{width:100%;margin:16px 0}#status{min-height:24px;line-height:1.6}#progress{display:block;width:100%;height:5px;margin:12px 0;accent-color:#b2d5c4}#progress[hidden],#cancel[hidden]{display:none}footer{display:flex;justify-content:space-between;gap:20px}a{color:#b2d5c4}input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid #dfbf85}.mode{display:flex;gap:9px;align-items:center;font-size:13px;color:#91abae}.mode select{font-size:13px;padding:12px}.hint{margin:8px 0 0;font-size:13px}#warnings{color:#dfbf85}#warnings:empty{display:none}@media(max-width:760px){main{padding:20px}header,footer{display:block}h1{font-size:30px}#finger{height:540px}.panel{padding:15px}.controls{gap:8px}button,.upload{padding:11px 13px}header>small{display:block}.mode{width:100%}}
+</style>
+<main>
+<header><div><div class="tag">HYA / SOUND IN LAYERS</div><h1>看见音乐的层次。</h1><p>人声音符、低音走向与鼓点，在同一条时间线上展开。</p></div><small>本机处理 · 无需账号<br>先分析，再随音乐播放</small></header>
+<div class="controls">
+<label class="upload primary">导入音频<input id="file" type="file" accept="audio/*" hidden></label>
+<button id="sample">载入测试曲目</button><button id="demo">体验示例声音</button>
+<label class="mode">分析方式<select id="mode"><option value="ml">分轨分析</option><option value="quick">快速音高估计</option></select></label>
+<button id="cancel" hidden>取消分析</button><button id="save" disabled>导出参数</button><button id="png" disabled>保存图片</button>
+</div>
+<div id="status" role="status" aria-live="polite">导入 WAV / MP3 / M4A / AIFF。最长 10 分钟，最大 128 MB。</div>
+<progress id="progress" max="1" value="0" aria-label="分析进度" hidden></progress>
+<p class="hint" id="modeHint">分轨分析需要先完成本机模型配置，耗时取决于曲长；同一音频再次导入可复用结果。</p>
+<p class="hint" id="warnings"></p>
+<div class="grid">
+<section class="panel"><div class="eyebrow">01 / VOICE · BASS · RHYTHM</div><canvas id="finger" aria-label="音符与鼓点时间线：横轴时间，音符纵轴音高"></canvas><small id="legend">金色：人声估计音符；绿色：低音估计音符；珊瑚色：鼓点起音。音符条的长度表示时长。</small></section>
+<section class="panel"><div class="eyebrow">02 / MIX ACOUSTICS</div><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></section>
+</div>
+<section class="panel"><div class="eyebrow">03 / LISTEN & OBSERVE</div><audio id="audio" controls></audio><footer><small>播放、暂停或拖动进度。画面始终跟随原曲时间。</small><label><input id="motion" type="checkbox" checked>连续滚动</label></footer></section>
+<p id="limits">分轨与音符均为模型估计，可能漏检或混入其他声部。人声轨可能同时包含主唱与和声，音符条不代表连续滑音。示例是合成旋律与和弦，不含真实人声。</p>
+</main>
 <script>
-const $=id=>document.getElementById(id),token=new URLSearchParams(location.search).get('token');let result=null,url=null,busy=false;
+const $=id=>document.getElementById(id);
+const token=new URLSearchParams(location.search).get('token');
+let result=null,url=null,busy=false,activeJob=null,cancelRequested=false;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)$('motion').checked=false;
-function setup(c){let box=c.getBoundingClientRect(),d=devicePixelRatio||1;if(c.width!==Math.round(box.width*d)||c.height!==Math.round(box.height*d)){c.width=Math.round(box.width*d);c.height=Math.round(box.height*d)}let ctx=c.getContext('2d');ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,box.width,box.height);return[ctx,box.width,box.height]}
-function draw(staticOnly=false){let [c,w,h]=setup($('finger'));c.fillStyle='#14252e';c.fillRect(0,0,w,h);if(!result){c.fillStyle='#91abae';c.font='16px sans-serif';c.textAlign='center';c.fillText('等待一段声音，留下它的形状。',w/2,h/2);setup($('charts'));return}
-let t=$('audio').currentTime||0,frames=result.frames,f=frames[Math.min(frames.length-1,Math.max(0,Math.round((t*result.rate-result.window/2)/result.hop)))];
-const colors=['#edcc8e','#83c9b0'];
-const view=staticOnly?result.duration:12;
-const clock=$('motion').checked?t:Math.floor(t/12)*12+12;
-const start=staticOnly?0:clock-12;
-const left=65,right=w-45;
-const xAt=time=>left+(right-left)*(time-start)/view;
-const laneHeight=(h-60)/2;
-const yAt=(pitch,j)=>45+j*laneHeight+(96-Math.max(36,Math.min(96,pitch)))/60*(laneHeight-40);
-const valid=v=>v&&v.pitch!==null&&v.confidence>=.12;
-for(let j=0;j<2;j++){
- c.fillStyle=colors[j];c.font='12px sans-serif';c.textAlign='left';c.fillText(j===0?'旋律候选':'低音伴随候选',left,25+j*laneHeight);
- for(let note=36;note<=96;note+=12){const y=yAt(note,j);c.strokeStyle='#203943';c.lineWidth=1;c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke();c.fillStyle='#71858c';c.fillText('C'+(note/12-1),22,y+4)}
- c.save();c.beginPath();c.rect(left,30+j*laneHeight,right-left,laneHeight-10);c.clip();c.beginPath();let connected=false,last=null;
- // Each stored timestamp always maps to the same height: no procedural wobble.
- for(const frame of frames){if(frame.t<start-.1)continue;if(frame.t>(staticOnly?result.duration:t))break;const v=frame.voices?.[j];if(!valid(v)){connected=false;last=null;continue}const x=xAt(frame.t),y=yAt(v.pitch,j);if(connected&&Math.abs(v.pitch-last)<5)c.lineTo(x,y);else c.moveTo(x,y);connected=true;last=v.pitch;}
- c.strokeStyle=colors[j];c.lineWidth=2;c.stroke();c.restore();
- if(!staticOnly&&valid(f.voices?.[j])){const v=f.voices[j];c.beginPath();c.arc(xAt(t),yAt(v.pitch,j),4,0,Math.PI*2);c.fillStyle=colors[j];c.fill()}
+function setup(canvas){
+ const box=canvas.getBoundingClientRect(),d=devicePixelRatio||1;
+ if(canvas.width!==Math.round(box.width*d)||canvas.height!==Math.round(box.height*d)){canvas.width=Math.round(box.width*d);canvas.height=Math.round(box.height*d)}
+ const ctx=canvas.getContext('2d');ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,box.width,box.height);return[ctx,box.width,box.height];
 }
-c.fillStyle='#91abae';c.font='11px sans-serif';c.fillText(staticOnly?'整曲音高轨迹':`${Math.max(0,start).toFixed(1)} s`,left,h-8);c.textAlign='right';c.fillText(`${t.toFixed(1)} s`,right,h-8);c.textAlign='left';
-let [g,cw,ch]=setup($('charts'));[['energy','能量 / −60 … 0 dBFS',1,'#83c9b0'],['centroid','频谱重心 / 0 … 11 kHz',result.rate/2,'#dfbf85']].forEach(([key,title,max,color],j)=>{let top=30+j*ch*.48,height=ch*.31,left=8,right=cw-8;g.fillStyle='#91abae';g.font='12px sans-serif';g.fillText(title,left,top-12);g.strokeStyle='#2e4852';g.beginPath();g.moveTo(left,top+height);g.lineTo(right,top+height);g.stroke();g.beginPath();let step=Math.max(1,Math.floor(frames.length/500));for(let i=0;i<frames.length;i+=step){let v=frames[i],x=left+(right-left)*v.t/result.duration,y=top+height*(1-v[key]/max);i?g.lineTo(x,y):g.moveTo(x,y)}g.strokeStyle=color;g.lineWidth=1.5;g.stroke();let x=left+(right-left)*t/result.duration;g.beginPath();g.moveTo(x,top);g.lineTo(x,top+height);g.strokeStyle='#e9eee6';g.stroke()});$('duration').textContent=result.duration.toFixed(1);$('centroid').textContent=Math.round(f.centroid);$('energy').textContent=f.rms>0?(20*Math.log10(f.rms)).toFixed(1):'−∞';}
-async function load(blob,name){if(busy)return;busy=true;$('audio').pause();$('audio').removeAttribute('src');$('audio').load();result=null;draw();$('file').disabled=$('demo').disabled=$('save').disabled=$('png').disabled=true;$('status').textContent='正在解码与分析，请稍候…';try{if(blob.size>128*1024*1024)throw Error('文件超过 128 MB，请先裁剪。');let response=await fetch('/analyze',{method:'POST',headers:{'X-Hya-Token':token},body:blob}),data=await response.json();if(!response.ok)throw Error(data.error);result=data;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(blob);$('audio').src=url;$('save').disabled=$('png').disabled=false;$('status').textContent=`${name} · 分析完成 · ${data.frames.length} 帧声学特征`;draw()}catch(e){$('status').textContent='无法分析：'+e.message}finally{busy=false;$('file').disabled=$('demo').disabled=false;$('file').value=''}}
-$('sample').onclick=async()=>{try{const r=await fetch('/sample?token='+encodeURIComponent(token));if(!r.ok)throw Error('请启动时设置 HYA_TEST_AUDIO，或使用导入音频');await load(await r.blob(),'My Heart Will Go On · 本地测试曲目')}catch(e){$('status').textContent=e.message}};
+function nearestFrame(frames,time){
+ if(!frames?.length)return {energy:0,rms:0,centroid:0};
+ let lo=0,hi=frames.length-1;
+ while(lo<hi){const mid=(lo+hi)>>1;if(frames[mid].t<time)lo=mid+1;else hi=mid}
+ return lo>0&&time-frames[lo-1].t<frames[lo].t-time?frames[lo-1]:frames[lo];
+}
+function draw(staticOnly=false){
+ const [c,w,h]=setup($('finger'));c.fillStyle='#14252e';c.fillRect(0,0,w,h);
+ if(!result){c.fillStyle='#91abae';c.font='16px sans-serif';c.textAlign='center';c.fillText(busy?'正在聆听，等待分析完成…':'导入一段声音，展开它的层次。',w/2,h/2);setup($('charts'));return}
+ const t=$('audio').currentTime||0,frames=result.frames||[],f=nearestFrame(frames,t),ml=!!result.tracks;
+ const view=staticOnly?Math.max(.01,result.duration):12;
+ const clock=$('motion').checked?t:Math.floor(t/12)*12+12;
+ const start=staticOnly?0:clock-12,until=staticOnly?result.duration:t;
+ const left=55,right=w-20,xAt=time=>left+(right-left)*(time-start)/view;
+ const laneHeight=(h-55)/(ml?3:2),colors=['#edcc8e','#83c9b0','#e8a18d'];
+ const yAt=(pitch,j)=>40+j*laneHeight+(96-Math.max(24,Math.min(96,pitch)))/72*(laneHeight-50);
+ for(let j=0;j<(ml?3:2);j++){
+  c.fillStyle=colors[j];c.font='12px sans-serif';c.textAlign='left';
+  c.fillText(ml?['人声 · 估计音符','低音 · 估计音符','鼓点 · 起音强度'][j]:['旋律候选','低音伴随候选'][j],left,22+j*laneHeight);
+  if(j<2)for(let note=24;note<=96;note+=24){const y=yAt(note,j);c.strokeStyle='#203943';c.lineWidth=1;c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke();c.fillStyle='#71858c';c.fillText('C'+(note/12-1),17,y+4)}
+  c.save();c.beginPath();c.rect(left,28+j*laneHeight,right-left,laneHeight-12);c.clip();
+  if(ml&&j<2){
+   const notes=result.tracks[j===0?'vocals':'bass']?.notes||[];c.fillStyle=colors[j];
+   for(const note of notes){
+    if(note.end<start||note.start>until)continue;
+    const x=xAt(Math.max(start,note.start)),end=xAt(Math.min(until,note.end));
+    if(end<=x)continue;
+    c.globalAlpha=.45+.55*Math.max(0,Math.min(1,note.amplitude??.5));
+    c.fillRect(x,yAt(note.pitch,j)-2,Math.max(1,end-x),4);
+   }
+   c.globalAlpha=1;
+  }else if(ml){
+   const base=28+j*laneHeight+laneHeight-30;c.strokeStyle='#203943';c.beginPath();c.moveTo(left,base);c.lineTo(right,base);c.stroke();
+   for(const event of result.tracks.drums?.onsets||[]){
+    if(event.t<start||event.t>until)continue;
+    const x=xAt(event.t),height=12+Math.max(0,Math.min(1,event.strength))*(laneHeight-65);
+    c.strokeStyle=colors[j];c.lineWidth=2;c.beginPath();c.moveTo(x,base);c.lineTo(x,base-height);c.stroke();
+    c.fillStyle=colors[j];c.beginPath();c.arc(x,base-height,3,0,Math.PI*2);c.fill();
+   }
+  }else{
+   c.beginPath();let connected=false,last=null;
+   for(const frame of frames){
+    if(frame.t<start-.1)continue;if(frame.t>until)break;
+    const v=frame.voices?.[j];
+    if(!v||v.pitch===null||v.confidence<.12){connected=false;last=null;continue}
+    const x=xAt(frame.t),y=yAt(v.pitch,j);
+    if(connected&&Math.abs(v.pitch-last)<5)c.lineTo(x,y);else c.moveTo(x,y);
+    connected=true;last=v.pitch;
+   }
+   c.strokeStyle=colors[j];c.lineWidth=2;c.stroke();
+  }
+  c.restore();
+ }
+ c.fillStyle='#91abae';c.font='11px sans-serif';c.fillText(staticOnly?'整曲音符与起音':`${Math.max(0,start).toFixed(1)} s`,left,h-8);
+ c.textAlign='right';c.fillText(`${(staticOnly?result.duration:t).toFixed(1)} s`,right,h-8);c.textAlign='left';
+ const [g,cw,ch]=setup($('charts')),maxHz=result.rate?result.rate/2:22050;
+ [['energy','原曲能量 / −60 … 0 dBFS',1,'#83c9b0'],['centroid','频谱重心 / Hz',maxHz,'#dfbf85']].forEach(([key,title,max,color],j)=>{
+  const top=30+j*ch*.48,height=ch*.31,left=8,right=cw-8;
+  g.fillStyle='#91abae';g.font='12px sans-serif';g.fillText(title,left,top-12);g.strokeStyle='#2e4852';g.beginPath();g.moveTo(left,top+height);g.lineTo(right,top+height);g.stroke();g.beginPath();
+  const step=Math.max(1,Math.floor(frames.length/500));
+  for(let i=0;i<frames.length;i+=step){const v=frames[i],x=left+(right-left)*v.t/result.duration,y=top+height*(1-Math.max(0,Math.min(1,v[key]/max)));i?g.lineTo(x,y):g.moveTo(x,y)}
+  g.strokeStyle=color;g.lineWidth=1.5;g.stroke();const x=left+(right-left)*t/result.duration;g.beginPath();g.moveTo(x,top);g.lineTo(x,top+height);g.strokeStyle='#e9eee6';g.stroke();
+ });
+ $('duration').textContent=result.duration.toFixed(1);$('centroid').textContent=Math.round(f.centroid);$('energy').textContent=f.rms>0?(20*Math.log10(f.rms)).toFixed(1):'−∞';
+}
+function setBusy(value){
+ busy=value;for(const id of ['file','demo','sample','mode'])$(id).disabled=value;
+ $('save').disabled=$('png').disabled=value||!result;
+ $('cancel').hidden=!value||$('mode').value==='quick';$('cancel').disabled=false;
+ $('progress').hidden=!value;
+}
+async function request(path,options={}){
+ const response=await fetch(path,{...options,headers:{'X-Hya-Token':token,...options.headers}});
+ const data=await response.json();if(!response.ok)throw Error(data.error||`请求失败 (${response.status})`);return data;
+}
+function showJob(job){
+ $('status').textContent=cancelRequested?'正在取消分析…':(job.message||{queued:'等待分析…',running:'正在分析…',done:'分析完成'}[job.state]||'正在处理…');
+ if(Number.isFinite(job.progress))$('progress').value=Math.max(0,Math.min(1,job.progress));else $('progress').removeAttribute('value');
+}
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function analyzeML(blob){
+ let job=await request('/jobs',{method:'POST',body:blob});activeJob=job.id;
+ while(true){
+  if(cancelRequested){await request('/jobs/'+encodeURIComponent(activeJob),{method:'DELETE'});throw Error('已取消分析')}
+  showJob(job);
+  if(job.state==='done')return {data:await request('/jobs/'+encodeURIComponent(activeJob)+'/result'),cached:!!job.cached};
+  if(job.state==='error')throw Error(job.error||job.message||'分析失败');
+  if(job.state==='cancelled'||job.state==='canceled')throw Error('已取消分析');
+  await delay(700);job=await request('/jobs/'+encodeURIComponent(activeJob));
+ }
+}
+async function load(blob,name){
+ if(busy)return;cancelRequested=false;activeJob=null;result=null;setBusy(true);
+ $('audio').pause();$('audio').removeAttribute('src');$('audio').load();
+ if(url){URL.revokeObjectURL(url);url=null}
+ $('warnings').textContent='';for(const id of ['duration','centroid','energy'])$(id).textContent='—';
+ $('progress').value=0;$('status').textContent='正在上传至本机并准备分析…';draw();
+ try{
+  if(blob.size>128*1024*1024)throw Error('文件超过 128 MB，请先裁剪。');
+  let output;
+  if($('mode').value==='quick')output={data:await request('/analyze',{method:'POST',body:blob}),cached:false};
+  else output=await analyzeML(blob);
+  if(cancelRequested)throw Error('已取消分析');
+  result=output.data;url=URL.createObjectURL(blob);$('audio').src=url;
+  $('status').textContent=`${name} · ${output.cached?'已复用缓存':'分析完成'} · ${result.duration.toFixed(1)} 秒`;
+  $('warnings').textContent=(result.warnings||[]).join(' ');
+  $('legend').textContent=result.tracks?'金色：人声估计音符；绿色：低音估计音符；珊瑚色：鼓点起音。音符条的长度表示时长。':'金色：旋律候选；绿色：低音伴随候选。来自混合音频的频谱估计，不代表分轨。';
+  draw();
+ }catch(error){$('status').textContent=cancelRequested?'已取消分析，可以重新导入。':'无法分析：'+error.message+'。可以重试，或选择快速音高估计。'}
+ finally{activeJob=null;setBusy(false);$('file').value='';draw()}
+}
+$('cancel').onclick=()=>{cancelRequested=true;$('cancel').disabled=true;$('status').textContent='正在取消分析…'};
+$('mode').onchange=()=>{$('modeHint').textContent=$('mode').value==='ml'?'分轨分析需要先完成本机模型配置，耗时取决于曲长；同一音频再次导入可复用结果。':'快速模式直接分析混合音频，不进行分轨；较响的伴奏可能取代旋律。';};
+$('sample').onclick=async()=>{
+ if(busy)return;setBusy(true);$('cancel').hidden=true;$('status').textContent='正在读取测试曲目…';
+ try{const response=await fetch('/sample?token='+encodeURIComponent(token));if(!response.ok)throw Error('请启动时设置 HYA_TEST_AUDIO，或使用导入音频');const blob=await response.blob();setBusy(false);await load(blob,'本地测试曲目')}
+ catch(error){$('status').textContent=error.message;setBusy(false)}
+};
 $('file').onchange=e=>{if(e.target.files[0])load(e.target.files[0],e.target.files[0].name)};
-$('demo').onclick=()=>{let rate=22050,n=rate*9,b=new ArrayBuffer(44+n*2),v=new DataView(b);function str(o,s){[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)))}str(0,'RIFF');v.setUint32(4,36+n*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);for(let i=0;i<n;i++){let t=i/rate,f=[523.25,587.33,659.25,783.99,659.25,587.33][Math.floor(t/.75)%6],a=(.12+.22*(.5+.5*Math.sin(2*Math.PI*1.5*t)))*Math.min(1,t*10,(9-t)*10);v.setInt16(44+i*2,Math.round(32767*(a*Math.sin(2*Math.PI*f*t)+.06*Math.sin(2*Math.PI*130.81*t)+.05*Math.sin(2*Math.PI*164.81*t)+.04*Math.sin(2*Math.PI*196*t))*Math.min(1,t*10,(9-t)*10)),true)}load(new Blob([b],{type:'audio/wav'}),'Hya 示例 · 流动旋律与 C 大三和弦')};
-function download(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
-$('save').onclick=()=>download(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),'hya-fingerprint.json');$('png').onclick=()=>{draw(true);$('finger').toBlob(blob=>download(blob,'hya-fingerprint.png'));draw()};$('audio').onerror=()=>{if(result)$('status').textContent='分析完成，但浏览器无法播放此格式；请转换为 WAV 或 MP3。'};function loop(){draw();requestAnimationFrame(loop)}loop();
-</script></html>
+$('demo').onclick=()=>{
+ let rate=22050,n=rate*9,b=new ArrayBuffer(44+n*2),v=new DataView(b);
+ function str(o,s){[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)))}
+ str(0,'RIFF');v.setUint32(4,36+n*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++){let t=i/rate,f=[523.25,587.33,659.25,783.99,659.25,587.33][Math.floor(t/.75)%6],a=(.12+.22*(.5+.5*Math.sin(2*Math.PI*1.5*t)))*Math.min(1,t*10,(9-t)*10);v.setInt16(44+i*2,Math.round(32767*(a*Math.sin(2*Math.PI*f*t)+.06*Math.sin(2*Math.PI*130.81*t)+.05*Math.sin(2*Math.PI*164.81*t)+.04*Math.sin(2*Math.PI*196*t))*Math.min(1,t*10,(9-t)*10)),true)}
+ load(new Blob([b],{type:'audio/wav'}),'合成示例 · 旋律与 C 大三和弦');
+};
+function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+$('save').onclick=()=>{if(result)download(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),'hya-analysis.json')};
+$('png').onclick=()=>{if(!result)return;draw(true);$('finger').toBlob(blob=>{if(blob)download(blob,'hya-tracks.png')});draw()};
+$('audio').onerror=()=>{if(result)$('status').textContent='分析完成，但浏览器无法播放此格式；请转换为 WAV 或 MP3。'};
+function loop(){draw();requestAnimationFrame(loop)}loop();
+</script>
+</html>
