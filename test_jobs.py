@@ -1,5 +1,6 @@
 """Exercise job/process lifecycle and HTTP contract without loading ML models."""
 import http.client
+import gzip
 import json
 from pathlib import Path
 import socket
@@ -8,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 import app
 from jobs import JobManager, TERMINAL
@@ -25,7 +27,7 @@ if mode == "fail":
 if mode == "invalid":
     output.write_text("{}")
 else:
-    output.write_text(json.dumps(dict(version="hya-ml-1", duration=1.0, tracks=dict(vocals=dict(notes=[])), frames=[])))
+    output.write_text(json.dumps(dict(version="hya-ml-2", duration=1.0, tracks={name: dict(frames=[], notes=[], onsets=[]) for name in ("vocals", "bass", "piano", "guitar", "drums", "other")}, frames=[])))
 '''
 
 
@@ -104,7 +106,7 @@ class JobTests(JobFixture, unittest.TestCase):
         first = self.manager.submit(b'ok')
         self.terminal(first)
         cache = self.manager.jobs[first['id']]['result']
-        cache.write_text(json.dumps(dict(version='hya-ml-1', duration=1, tracks={})))
+        cache.write_text(json.dumps(dict(version='hya-ml-2', duration=1, tracks={})))
         second = self.manager.submit(b'ok')
         self.assertFalse(second['cached'])
         self.assertEqual(self.terminal(second)['state'], 'done')
@@ -185,10 +187,10 @@ class HTTPTests(JobFixture, unittest.TestCase):
         payload = response.read()
         status = response.status
         connection.close()
-        return status, json.loads(payload)
+        return status, json.loads(payload) if payload else None
 
     def test_http_authorization_and_routes(self):
-        for method, path, body in (('POST', '/jobs', b'ok'), ('GET', '/jobs/missing', None),
+        for method, path, body in (('GET', '/default', None), ('GET', '/default/result', None), ('HEAD', '/sample', None), ('GET', '/sample', None), ('POST', '/jobs', b'ok'), ('GET', '/jobs/missing', None),
                                    ('GET', '/jobs/missing/result', None), ('DELETE', '/jobs/missing', None)):
             with self.subTest(method=method, path=path):
                 self.assertEqual(self.request(method, path, body, authorized=False)[0], 403)
@@ -206,8 +208,90 @@ class HTTPTests(JobFixture, unittest.TestCase):
         self.assertEqual(self.terminal(success)['state'], 'done')
         code, result = self.request('GET', '/jobs/' + success['id'] + '/result')
         self.assertEqual(code, 200)
-        self.assertEqual(result['version'], 'hya-ml-1')
+        self.assertEqual(result['version'], 'hya-ml-2')
         self.assertTrue(self.request('POST', '/jobs', b'ok')[1]['cached'])
+
+    def test_default_metadata_audio_and_missing_file(self):
+        source = self.root / 'My heart will go on.mp3'
+        source.write_bytes(b'audio-fixture')
+        with patch('app.default_audio', return_value=(source, source.stem)), patch('app.playback_audio', return_value=source):
+            self.assertEqual(self.request('GET', '/default'), (200, {'name': source.stem, 'playback': False}))
+            connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port)
+            connection.request('GET', '/sample?token=' + app.TOKEN)
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.read(), b'audio-fixture')
+            self.assertEqual(response.getheader('Content-Type'), 'audio/mpeg')
+            connection.close()
+        with patch('app.default_audio', side_effect=FileNotFoundError('missing song')):
+            self.assertEqual(self.request('GET', '/default')[0], 404)
+
+    def raw_request(self, method, path, headers=None):
+        connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=3)
+        connection.request(method, path, headers=headers or {})
+        response = connection.getresponse()
+        result = response.status, dict(response.getheaders()), response.read()
+        connection.close()
+        return result
+
+    def test_default_cache_read_never_submits_or_starts_a_worker(self):
+        source = self.root / 'default.mp3'
+        source.write_bytes(b'ok')
+        with patch('app.default_audio', return_value=(source, source.stem)):
+            with patch.object(self.manager, 'submit', side_effect=AssertionError('must not submit')):
+                self.assertEqual(self.request('GET', '/default/result')[0], 409)
+            job = self.manager.submit(b'ok')
+            self.assertEqual(self.terminal(job)['state'], 'done')
+            # Use a realistic result large enough to exercise gzip transport.
+            cache = self.manager.jobs[job['id']]['result']
+            data = json.loads(cache.read_bytes())
+            data['frames'] = [{'t': i / 20, 'energy': .5} for i in range(500)]
+            cache.write_text(json.dumps(data))
+            with patch.object(self.manager, 'submit', side_effect=AssertionError('must not submit')):
+                code, headers, body = self.raw_request('GET', '/default/result',
+                    {'X-Hya-Token': app.TOKEN, 'Accept-Encoding': 'gzip, deflate, br'})
+                self.assertEqual(code, 200)
+                self.assertEqual(headers['Content-Encoding'], 'gzip')
+                self.assertEqual(int(headers['Content-Length']), len(body))
+                self.assertEqual(json.loads(gzip.decompress(body)), data)
+                code, headers, body = self.raw_request('GET', '/default/result',
+                    {'X-Hya-Token': app.TOKEN, 'Accept-Encoding': 'gzip;q=0'})
+                self.assertNotIn('Content-Encoding', headers)
+                self.assertEqual(json.loads(body), data)
+                source.write_bytes(b'changed-song')
+                self.assertEqual(self.request('GET', '/default/result')[0], 409)
+                source.write_bytes(b'ok')
+                cache.write_text('{}')
+                self.assertEqual(self.request('GET', '/default/result')[0], 409)
+                self.assertEqual(len(self.manager.jobs), 1)
+
+    def test_media_ranges_head_conditional_and_playback(self):
+        source = self.root / 'original.flac'
+        source.write_bytes(b'original')
+        playback = self.root / 'preview.m4a'
+        playback.write_bytes(b'0123456789')
+        path = '/sample?playback=1&token=' + app.TOKEN
+        with patch('app.default_audio', return_value=(source, source.stem)), patch('app.playback_audio', return_value=playback):
+            code, headers, body = self.raw_request('GET', path, {'Range': 'bytes=0-1'})
+            self.assertEqual((code, body), (206, b'01'))
+            self.assertEqual(headers['Content-Type'], 'audio/mp4')
+            self.assertEqual(headers['Content-Range'], 'bytes 0-1/10')
+            self.assertEqual(headers['Accept-Ranges'], 'bytes')
+            etag = headers['ETag']
+            for range_, expected in [('bytes=5-', b'56789'), ('bytes=-3', b'789'), ('bytes=8-999', b'89')]:
+                code, headers, body = self.raw_request('GET', path, {'Range': range_})
+                self.assertEqual((code, body), (206, expected))
+                self.assertEqual(int(headers['Content-Length']), len(body))
+            for range_ in ['bytes=10-', 'bytes=5-2', 'bytes=-0']:
+                code, headers, body = self.raw_request('GET', path, {'Range': range_})
+                self.assertEqual((code, body), (416, b''))
+                self.assertEqual(headers['Content-Range'], 'bytes */10')
+            code, headers, body = self.raw_request('HEAD', path, {'Range': 'bytes=0-1'})
+            self.assertEqual((code, body, headers['Content-Length']), (200, b'', '10'))
+            self.assertEqual(self.raw_request('GET', path, {'If-None-Match': etag})[0], 304)
+            code, headers, body = self.raw_request('GET', path, {'Range': 'bytes=0-1', 'If-Range': 'stale'})
+            self.assertEqual((code, body), (200, b'0123456789'))
+            self.assertEqual(self.raw_request('GET', '/sample?playback=1')[0], 403)
 
     def test_http_empty_and_oversize_upload(self):
         self.assertEqual(self.request('POST', '/jobs', b'')[0], 400)

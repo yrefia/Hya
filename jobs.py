@@ -10,9 +10,23 @@ import subprocess
 import tempfile
 import threading
 import time
+from ml_pipeline import VERSION, STEMS, PITCHED
 
 ROOT = Path(__file__).resolve().parent
 TERMINAL = {'done', 'error', 'cancelled'}
+
+
+def valid_result(data):
+    """Old/partial results must never satisfy a six-track cache request."""
+    if not isinstance(data, dict) or data.get('version') != VERSION or data.get('duration', 0) <= 0:
+        return False
+    tracks = data.get('tracks')
+    return (isinstance(tracks, dict) and set(tracks) == set(STEMS)
+            and isinstance(data.get('frames'), list)
+            and all(isinstance(tracks[name], dict) and isinstance(tracks[name].get('frames'), list)
+                    for name in STEMS)
+            and all(isinstance(tracks[name].get('notes'), list) for name in PITCHED)
+            and isinstance(tracks['drums'].get('onsets'), list))
 
 
 class JobManager:
@@ -31,7 +45,7 @@ class JobManager:
             if path.exists():
                 signature.update(path.read_bytes())
         for path in sorted((self.root / '.models/audio-separator').glob('*')):
-            if path.suffix in {'.th', '.yaml'}:
+            if path.suffix in {'.th', '.yaml', '.safetensors'}:
                 signature.update(path.name.encode())
                 signature.update(path.read_bytes())
         self.signature = signature.digest()
@@ -40,6 +54,21 @@ class JobManager:
         with self.lock:
             job = self.jobs[job_id]
             return {key: job[key] for key in ('id', 'state', 'stage', 'progress', 'message', 'cached', 'error') if key in job}
+
+    def cached_result(self, source):
+        """Read a prepared result without queueing work or uploading audio."""
+        digest = hashlib.sha256(self.signature)
+        with Path(source).open('rb') as audio:
+            for chunk in iter(lambda: audio.read(1024 * 1024), b''):
+                digest.update(chunk)
+        path = self.cache / (digest.hexdigest() + '.json')
+        try:
+            body = path.read_bytes()
+            if valid_result(json.loads(body)):
+                return body
+        except (OSError, ValueError, TypeError, KeyError):
+            pass
+        raise ValueError('默认曲目的六轨缓存缺失或已过期，请在电脑上运行 precache.py；音频仍可播放。')
 
     def submit(self, body):
         digest = hashlib.sha256(self.signature + body).hexdigest()
@@ -60,7 +89,7 @@ class JobManager:
             if result.exists():
                 try:
                     parsed = json.loads(result.read_text())
-                    valid = parsed['version'] == 'hya-ml-1' and bool(parsed.get('tracks')) and parsed['duration'] > 0
+                    valid = valid_result(parsed)
                 except (ValueError, KeyError, OSError, TypeError):
                     pass
             job = dict(id=job_id, state='done' if valid else 'queued', stage='done' if valid else 'queued',
@@ -150,7 +179,7 @@ class JobManager:
                     pass
                 raise ValueError(message)
             data = json.loads(output.read_text())
-            if data.get('version') != 'hya-ml-1' or not data.get('tracks') or data.get('duration', 0) <= 0:
+            if not valid_result(data):
                 raise ValueError('分析结果不完整，请重试。')
             with self.lock:
                 if job['cancel'].is_set():

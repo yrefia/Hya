@@ -9,8 +9,12 @@ import webbrowser
 import threading
 import secrets
 import urllib.parse
+import mimetypes
+import gzip
+import re
 from audio_analysis import analyze
 from jobs import JobManager
+from default_audio import default_audio, playback_audio
 
 TOKEN = secrets.token_urlsafe(24)
 ROOT = Path(__file__).resolve().parent
@@ -22,14 +26,22 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def reply(self, code, data, kind='application/json'):
+        compressed = (kind == 'application/json' and len(data) > 1024
+                      and re.search(r'(?:^|,)\s*gzip\s*(?:,|$)', self.headers.get('Accept-Encoding', '')))
+        if compressed:
+            data = gzip.compress(data, compresslevel=5)
         self.send_response(code)
         self.send_header('Content-Type', kind)
         self.send_header('Content-Length', str(len(data)))
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Vary', 'Accept-Encoding')
+        if compressed:
+            self.send_header('Content-Encoding', 'gzip')
         self.end_headers()
         try:
-            self.wfile.write(data)
+            if self.command != 'HEAD':
+                self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):
             pass
 
@@ -39,17 +51,93 @@ class Handler(BaseHTTPRequestHandler):
     def authorized(self):
         return self.headers.get('X-Hya-Token') == TOKEN
 
+    def media(self, path):
+        """Serve seekable audio without buffering the entire file in memory."""
+        with path.open('rb') as audio:
+            stat = os.fstat(audio.fileno())
+            size = stat.st_size
+            etag = f'"{stat.st_mtime_ns:x}-{size:x}"'
+            start, end, code = 0, size - 1, 200
+            requested = self.headers.get('Range') if self.command != 'HEAD' else None
+            if self.headers.get('If-Range', etag) != etag:
+                requested = None
+            if self.headers.get('If-None-Match') == etag and not requested:
+                self.send_response(304)
+                self.send_header('ETag', etag)
+                self.send_header('Cache-Control', 'private, max-age=0, must-revalidate')
+                self.end_headers()
+                return
+            if requested:
+                match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
+                # Unsupported/multiple ranges are ignored, as allowed by HTTP.
+                if match and any(match.groups()):
+                    first, last = match.groups()
+                    if first:
+                        start = int(first)
+                        end = min(int(last), size - 1) if last else size - 1
+                    else:
+                        start = max(0, size - int(last))
+                    if start >= size or start > end:
+                        self.send_response(416)
+                        self.send_header('Content-Range', f'bytes */{size}')
+                        self.send_header('Content-Length', '0')
+                        self.end_headers()
+                        return
+                    code = 206
+            self.send_response(code)
+            self.send_header('Content-Type', 'audio/mp4' if path.suffix.lower() == '.m4a'
+                             else mimetypes.guess_type(path.name)[0] or 'application/octet-stream')
+            self.send_header('Content-Length', str(max(0, end - start + 1)))
+            self.send_header('Accept-Ranges', 'bytes')
+            self.send_header('ETag', etag)
+            self.send_header('Cache-Control', 'private, max-age=0, must-revalidate')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            if code == 206:
+                self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+            self.end_headers()
+            if self.command == 'HEAD':
+                return
+            audio.seek(start)
+            remaining = end - start + 1
+            try:
+                while remaining > 0:
+                    chunk = audio.read(min(64 * 1024, remaining))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    def do_HEAD(self):
+        self.do_GET()
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         query_token = urllib.parse.parse_qs(parsed.query).get('token') == [TOKEN]
         if parsed.path == '/' and query_token:
             self.reply(200, (ROOT / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
-        elif parsed.path == '/sample' and query_token:
-            sample = os.environ.get('HYA_TEST_AUDIO')
-            if sample and Path(sample).is_file():
-                self.reply(200, Path(sample).read_bytes(), 'application/octet-stream')
-            else:
-                self.json(404, {'error': '请设置 HYA_TEST_AUDIO 或导入音频。'})
+        elif parsed.path in ('/default', '/default/result', '/sample'):
+            if not (self.authorized() or query_token):
+                self.json(403, {'error': '会话无效，请从启动地址重新打开。'})
+                return
+            try:
+                sample, name = default_audio()
+                if sample.stat().st_size > MAX_UPLOAD:
+                    raise ValueError('默认曲目超过 128 MB。')
+                if parsed.path == '/default':
+                    self.json(200, {'name': name, 'playback': playback_audio() != sample})
+                elif parsed.path == '/default/result':
+                    try:
+                        self.reply(200, self.server.jobs.cached_result(sample))
+                    except ValueError as exc:
+                        self.json(409, {'error': str(exc)})
+                else:
+                    if urllib.parse.parse_qs(parsed.query).get('playback') == ['1']:
+                        sample = playback_audio()
+                    self.media(sample)
+            except (OSError, ValueError, KeyError) as exc:
+                self.json(404, {'error': str(exc)})
         elif parsed.path.startswith('/jobs/'):
             if not self.authorized():
                 self.json(403, {'error': '会话无效，请从启动地址重新打开。'})

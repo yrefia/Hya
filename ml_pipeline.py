@@ -14,7 +14,9 @@ import subprocess
 import sys
 import tempfile
 
-VERSION = 'hya-ml-1'
+VERSION = 'hya-ml-2'
+STEMS = ('vocals', 'bass', 'piano', 'guitar', 'drums', 'other')
+PITCHED = ('vocals', 'bass', 'piano', 'guitar')
 RATE = 44100
 WINDOW = 4096
 HOP = 2205  # 20 visual frames / second
@@ -135,18 +137,25 @@ def run_pipeline(input_path, output_path, progress_callback=None):
         folder = Path(temporary)
         audio = decode(input_path, folder / 'decoded.wav')
         duration = len(audio) / RATE
-        if not (MODEL_REPO / 'htdemucs.yaml').is_file() or not list(MODEL_REPO.glob('955717e8*.th')):
-            raise RuntimeError('缺少本地 Demucs 模型，请按 AUDIO_TOOLS.md 准备 .models/audio-separator。')
-        report(stage='separating', message='正在分离人声、低音、鼓与其他声部', progress=.12)
+        report(stage='separating', message='正在分离人声、低音、钢琴、吉他、鼓与其他声部', progress=.12)
         from demucs.pretrained import get_model
-        from demucs.apply import apply_model
-        model = get_model('htdemucs', repo=MODEL_REPO)
+        from demucs.apply import apply_model, BagOfModels
+        weights = MODEL_REPO / '5c90dfd2.safetensors'
+        if weights.is_file():
+            from demucs.hf import load_safetensors_model
+            model = BagOfModels([load_safetensors_model(weights)]).eval()
+        elif (MODEL_REPO / 'htdemucs_6s.yaml').is_file() and list(MODEL_REPO.glob('5c90dfd2*.th')):
+            model = get_model('htdemucs_6s', repo=MODEL_REPO)
+        else:
+            raise RuntimeError('缺少本地 Demucs 六轨模型，请按 AUDIO_TOOLS.md 准备 htdemucs_6s。')
+        if set(model.sources) != set(STEMS):
+            raise ValueError('Demucs 模型必须包含完整六轨。')
         signal = torch.from_numpy(audio.T.copy())
         # Use one common gain for all channels/stems; avoid mono cancellation.
         mean, scale = signal.mean(), signal.std().clamp_min(1e-8)
         def separation_progress(state):
             position = state.get('segment_offset', 0) / max(1, len(audio))
-            report(stage='separating', message='正在分离人声、低音、鼓与其他声部',
+            report(stage='separating', message='正在分离六个声部',
                    progress=.12 + .43 * min(1., position))
         with torch.inference_mode():
             if float(scale) <= 1e-8:
@@ -165,10 +174,10 @@ def run_pipeline(input_path, output_path, progress_callback=None):
         from basic_pitch import FilenameSuffix, build_icassp_2022_model_path
         from basic_pitch.inference import Model, predict
         pitch_model = Model(build_icassp_2022_model_path(FilenameSuffix.onnx))
-        for index, name in enumerate(('vocals', 'bass')):
+        for index, name in enumerate(PITCHED):
             report(stage='transcribing_' + name,
-                   message='正在转写' + ('人声音符' if name == 'vocals' else '低音音符'),
-                   progress=.64 + index * .16)
+                   message='正在转写' + dict(vocals='人声', bass='低音', piano='钢琴', guitar='吉他')[name] + '音符',
+                   progress=.62 + index * .09)
             stem = stems[name]
             # Use the stronger channel to prevent phase cancellation when downmixing.
             channel = int(np.argmax(np.mean(stem.astype(np.float64) ** 2, axis=0)))
@@ -183,7 +192,7 @@ def run_pipeline(input_path, output_path, progress_callback=None):
             'version': VERSION, 'duration': duration, 'rate': RATE, 'window': WINDOW, 'hop': HOP,
             'frames': frames, 'tracks': tracks, 'warnings': warnings,
             'provenance': {'demucs': importlib.metadata.version('demucs'),
-                           'demucs_model': 'htdemucs/955717e8', 'demucs_shifts': 0,
+                           'demucs_model': 'htdemucs_6s/5c90dfd2', 'demucs_shifts': 0,
                            'basic_pitch': importlib.metadata.version('basic-pitch'),
                            'basic_pitch_backend': 'onnx', 'device': 'cpu',
                            'normalization': 'shared stereo gain; no per-stem rescaling',
