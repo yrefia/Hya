@@ -299,6 +299,11 @@ class HTTPTests(JobFixture, unittest.TestCase):
                     {'X-Hya-Token': app.TOKEN, 'Accept-Encoding': 'gzip;q=0'})
                 self.assertNotIn('Content-Encoding', headers)
                 self.assertEqual(json.loads(body), data)
+                with patch('app.default_option', return_value=True):
+                    self.assertEqual(self.request('GET', '/default/result')[0], 409)
+                    front = {**data, 'foreground': {'accents': [], 'tracks': {}}}
+                    app.rubia.cache_path(self.manager.cache, cache.read_bytes()).write_text(json.dumps(front))
+                    self.assertEqual(self.request('GET', '/default/result'), (200, front))
                 source.write_bytes(b'changed-song')
                 self.assertEqual(self.request('GET', '/default/result')[0], 409)
                 source.write_bytes(b'ok')

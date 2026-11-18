@@ -6,7 +6,7 @@ import os
 import tempfile
 
 from hya import local_demos, rubia
-from hya.default_audio import default_audio, default_piano_solo, install_default, prepare_playback
+from hya.default_audio import default_audio, default_option, default_piano_solo, install_default, prepare_playback
 from hya.jobs import JobManager, TERMINAL
 
 
@@ -29,12 +29,21 @@ def warm_cache(manager, source, *, piano_solo):
     print(f'分析缓存：{manager.jobs[job["id"]]["result"]}', flush=True)
 
 
+def prepare_foreground(manager, background, source, stems=None):
+    destination = rubia.cache_path(manager.cache, background)
+    if stems or not destination.exists():
+        payload = rubia.build(background, source, stems)
+        with tempfile.NamedTemporaryFile(dir=manager.cache, delete=False) as output:
+            output.write(payload)
+        os.replace(output.name, destination)
+
+
 def main():
     parser = argparse.ArgumentParser(description='预缓存 Hya 默认曲目或本机演示曲目')
     parser.add_argument('audio', nargs='?', type=Path, help='省略时查找当前默认曲目或桌面 My heart will go on')
     parser.add_argument('--piano-solo', action='store_true', help='已确认是钢琴独奏，直接转写原曲')
     parser.add_argument('--demos', action='store_true', help='预缓存 inputs/ 中的演示曲目')
-    parser.add_argument('--rubia', action='store_true', help='只准备 Rubia 的播放和前景分析')
+    parser.add_argument('--rubia', action='store_true', help='准备 Rubia 的前景分析并设为默认曲目')
     parser.add_argument('--stems', type=Path, help='与 Rubia 原曲同步的六轨 WAV 目录，省略则重新分轨')
     args = parser.parse_args()
     if args.rubia and (args.demos or args.audio or args.piano_solo) or args.stems and not args.rubia:
@@ -54,18 +63,18 @@ def main():
                 warm_cache(manager, source, piano_solo=piano_solo)
                 background = manager.cached_result(source, piano_solo=piano_solo)
                 if track_id == 'rubia':
-                    destination = rubia.cache_path(manager.cache, background)
-                    if args.stems or not destination.exists():
-                        payload = rubia.build(background, source, args.stems)
-                        with tempfile.NamedTemporaryFile(dir=manager.cache, delete=False) as output:
-                            output.write(payload)
-                        os.replace(output.name, destination)
+                    prepare_foreground(manager, background, source, args.stems)
+                    if args.rubia:
+                        install_default(source, rubia=True)
                 print(f'播放副本：{prepare_playback(source, local_demos.PLAYBACK_DIR)}', flush=True)
         else:
             source = args.audio or default_audio()[0]
             piano_solo = args.piano_solo or (args.audio is None and default_piano_solo(source))
             warm_cache(manager, source, piano_solo=piano_solo)
-            installed = install_default(source, piano_solo=piano_solo)
+            use_foreground = not piano_solo and default_option(source, 'rubia')
+            if use_foreground:
+                prepare_foreground(manager, manager.cached_result(source), source)
+            installed = install_default(source, piano_solo=piano_solo, rubia=use_foreground)
             manager.cached_result(installed, piano_solo=piano_solo)
             print(f'默认曲目：{installed}', flush=True)
         print('分析缓存复用验证通过。', flush=True)

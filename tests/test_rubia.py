@@ -26,6 +26,8 @@ class RubiaTests(unittest.TestCase):
                 attack = next(n for n in notes if n['pitch'] == 61)
                 self.assertAlmostEqual(attack['start'], .3, delta=.061)
             for note in notes:
+                self.assertEqual(len(note['levels']), len(note['samples']))
+                self.assertTrue(all(0 <= value <= 31 for value in note['levels']))
                 self.assertLessEqual(note['end'], .82)
                 self.assertEqual(len(note['samples']), round((note['end']-note['start'])/STEP))
                 self.assertTrue(all(abs(p-note['pitch']) <= bend+.001 for p in note['samples']))

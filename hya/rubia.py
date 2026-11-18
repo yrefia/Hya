@@ -1,5 +1,6 @@
 """Foreground note estimates from Rubia's Demucs stems. Times are source seconds."""
 import hashlib
+import math
 from pathlib import Path
 
 # Polyphony, lowest/highest MIDI key, within-note bend (semitones), glide (seconds).
@@ -19,6 +20,19 @@ def cache_path(directory, background):
     return directory / ('rubia-' + key.hexdigest() + '.json')
 
 
+def cached_result(directory, background):
+    try:
+        return cache_path(directory, background).read_bytes()
+    except FileNotFoundError as exc:
+        raise ValueError('请在电脑上运行 precache.py --rubia 生成前景分析。') from exc
+
+
+def display_level(rms):
+    """Map absolute RMS from -65 to -8 dBFS onto 32 display levels."""
+    db = 20 * math.log10(max(rms, 1e-10))
+    return round(31 * min(1., max(0., (db + 65) / 57)))
+
+
 def estimate(audio, name, rate=44100):
     """Track spectral peaks, using level attacks and a decaying harmonic residual."""
     import numpy as np
@@ -33,6 +47,8 @@ def estimate(audio, name, rate=44100):
     fft = size * 4
     padded = np.pad(signal, ((size//2, size//2), (0, 0)))
     window = np.hanning(size)[:, None]
+    # Hann coherent gain converts a sinusoidal FFT peak to estimated band RMS.
+    rms_per_bin = math.sqrt(2) / window.sum()
     duration = len(audio) / rate
     floor = max(.00025, float(np.sqrt(np.mean(signal**2))) * .045)
     active = {}
@@ -98,10 +114,11 @@ def estimate(audio, name, rate=44100):
                 retrigger = (note and t-note['start'] >= .10 and level > last_level*1.35
                              and rise > 1.12)
                 if not note or retrigger:
-                    note = {'start': round(t, 3), 'pitch': key, 'samples': []}
+                    note = {'start': round(t, 3), 'pitch': key, 'samples': [], 'levels': []}
                     notes.append(note)
                     active[key] = note
                 note['samples'].append(measured)
+                note['levels'].append(display_level(spectrum[k] * rms_per_bin))
                 note['end'] = round(min(duration, t+STEP), 6)
         active = {key:active[key] for key in chosen}
         last_level, last_spectrum = level, spectrum
@@ -122,7 +139,6 @@ def estimate(audio, name, rate=44100):
 def build(background, source, stems_dir=None):
     import json
     import tempfile
-    import numpy as np
     import soundfile as sf
     from ml_pipeline import RATE, decode, separate_stems, drum_onsets
 
@@ -140,9 +156,11 @@ def build(background, source, stems_dir=None):
                 raise ValueError(f'{name} 分轨采样率或长度与原曲不符')
             return audio
     foreground = {name: estimate(read(name), name) for name in PROFILES}
-    hits = drum_onsets(read('drums'))
-    if hits:
-        threshold = np.quantile([hit['strength'] for hit in hits], .70)
-        hits = [hit for hit in hits if hit['strength'] >= threshold]
+    drums = read('drums')
+    hits = drum_onsets(drums)
+    for hit in hits:
+        start = max(0, round((hit['t'] - .01) * RATE))
+        attack = drums[start:start + round(.04 * RATE)]
+        hit['level'] = display_level(math.sqrt(float((attack**2).mean())))
     result['foreground'] = {'step': STEP, 'tracks': foreground, 'accents': hits}
     return json.dumps(result, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()
