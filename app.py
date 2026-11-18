@@ -117,6 +117,8 @@ class Handler(BaseHTTPRequestHandler):
         query_token = urllib.parse.parse_qs(parsed.query).get('token') == [TOKEN]
         if parsed.path == '/' and query_token:
             self.reply(200, (ROOT / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
+        elif parsed.path == '/assets/moonlit-lake.jpg':
+            self.reply(200, (ROOT / 'assets' / 'moonlit-lake.jpg').read_bytes(), 'image/jpeg')
         elif parsed.path in ('/default', '/default/result', '/sample'):
             if not (self.authorized() or query_token):
                 self.json(403, {'error': '会话无效，请从启动地址重新打开。'})

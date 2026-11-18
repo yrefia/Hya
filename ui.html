@@ -8,27 +8,50 @@
 
 main{max-width:1400px;padding:18px 30px}header{gap:12px}h1{font-size:28px;margin:3px 0 4px}header p{margin:0;font-size:13px}header small{font-size:12px}.controls{margin:14px 0 8px;gap:8px}button,.upload{padding:8px 13px;font-size:13px}.mode select{padding:8px}.panel{padding:14px 18px;border-radius:14px}.grid{margin:10px 0;gap:10px}#finger{height:clamp(390px,calc(100dvh - 305px),650px)}.hint,#status{font-size:12px}.hint{margin:4px 0}#legend{font-size:11px}.player{display:flex;align-items:center;gap:18px;font-size:12px}.player audio{flex:1;width:0;margin:10px 0;height:36px}.player label{white-space:nowrap}.player small{font-size:11px}.acoustics summary{cursor:pointer;color:#91abae;font-size:12px}#limits{font-size:11px;margin:10px 0}#charts{height:180px}.stats{margin-top:8px}.stats b{font-size:18px}
 @media(max-width:760px){main{padding:14px}.player{flex-wrap:wrap;gap:6px 12px}.player audio{flex-basis:100%;width:100%;margin:4px 0}header>small{display:none}#finger{height:580px}.panel{padding:10px}h1{font-size:25px}}
+
+body{background:#151c35 url('/assets/moonlit-lake.jpg') center/cover fixed;color:#f0edf8;min-height:100vh}
+main{max-width:1440px;background:linear-gradient(180deg,rgba(14,18,39,.58),rgba(14,18,39,.08) 55%,rgba(14,18,39,.6));min-height:100vh}
+p,small,.eyebrow,.hint,.mode,#limits{color:#c1bdd4}.tag{color:#d9c6f4}h1{font-weight:400;letter-spacing:3px}
+button,.upload,select{background:rgba(31,32,59,.65);border-color:#ffffff30;color:#eee9fa;backdrop-filter:blur(12px)}button:hover,.upload:hover{background:#554d76}.primary{background:#cdbde6;color:#24213b}
+.panel{background:rgba(18,23,45,.42);border-color:#ffffff20}.scene-panel{position:relative;border:0;background:transparent;padding:0!important}.scene-panel .eyebrow{padding:8px 16px;letter-spacing:3px}#scene{height:clamp(350px,calc(100dvh - 310px),660px)}
+.stem-legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-size:12px;margin:10px 0 16px}.stem-legend span::before{content:' ';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--stem);box-shadow:0 0 10px var(--stem);margin-right:7px}
+.scene-options{display:flex;justify-content:center;gap:18px;font-size:12px;color:#d0c9e0;flex-wrap:wrap}.scene-options input{accent-color:#cdbde6}.timeline summary{cursor:pointer;color:#c1bdd4;font-size:12px}.player{padding:0 4px}.player audio{opacity:.85}#finger{height:540px}
+@media(max-width:760px){main{padding:12px}#scene{height:440px}.stem-legend{gap:9px 16px}.scene-options{gap:10px}h1{font-size:24px}.controls{gap:6px}}
+
+body{overflow:hidden;background-position:center center}main{max-width:none;padding:0;min-height:100dvh;background:linear-gradient(180deg,#11172d18,#11172d00 65%,#11172d65)}
+.masthead{position:absolute;z-index:2;top:28px;left:3.5%;right:2.5%;display:flex;justify-content:space-between;align-items:center}.brand{display:flex;align-items:center;gap:24px;font-family:Georgia,"Songti SC",serif;color:#e1d9eb;font-size:23px;letter-spacing:3px}.brand h1{font:inherit;font-size:18px;letter-spacing:5px;margin:0}.brand-divider{font-size:18px;color:#b5a9c4}.crescent{position:absolute;left:-11px;top:-11px;width:42px;height:42px;border-radius:50%;border-left:1px solid #d8c0fa;transform:rotate(35deg);filter:drop-shadow(0 0 5px #dfc7ff)}.song-pill{border:1px solid #e9dbff20;border-radius:30px;padding:9px 22px;font-family:Georgia,"Songti SC",serif;font-size:16px;letter-spacing:2px;background:#81729a0a;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene-panel{position:absolute;inset:80px 0 135px}#scene{height:100%;width:100%}.listening{position:absolute;left:4%;right:4%;bottom:24px;display:block}.stem-legend{margin:0 0 26px;gap:30px;font-family:Georgia,"Songti SC",serif;font-size:14px;letter-spacing:2px}.transport{display:flex;align-items:center;gap:25px}.play-toggle{border-radius:50%;height:48px;width:48px;padding:0;font-size:20px;color:#e3cafa;border-color:#cdb2f05c;background:linear-gradient(135deg,#b393d633,#26244022);box-shadow:inset 0 -4px 12px #ad86d633}.more{border:0;background:transparent;font-size:30px;letter-spacing:3px;padding:0 8px;line-height:1}#playTime{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px;letter-spacing:1px;color:#d0c7dd}#seek{flex:1;min-width:40px;accent-color:#d4b4ed;cursor:pointer;height:4px}#audio{display:none}#audioStatus{margin:6px 0 0;text-align:center;color:#e7c8e3;font-size:12px;min-height:0}#audioStatus:empty{display:none}
+.tools-panel{position:fixed;z-index:5;right:24px;bottom:90px;width:min(720px,calc(100vw - 32px));max-height:75dvh;overflow:auto;padding:22px;border:1px solid #ffffff26;border-radius:20px;background:#1a1d34ed;backdrop-filter:blur(24px);box-shadow:0 10px 80px #0006}.tools-panel[hidden]{display:none}.tools-heading{display:flex;justify-content:space-between;align-items:center;font-size:17px}.tools-heading button{border:0;font-size:24px;padding:0 8px;background:transparent}.tools-panel .panel{margin-top:16px}.tools-panel .scene-options{margin:16px 0}.tools-panel #status{color:#d8cbe9}#finger{height:440px}
+@media(max-width:760px){body{background-position:68% center}.masthead{top:24px;left:7%;right:6%;align-items:flex-start;gap:18px;flex-wrap:wrap}.brand{gap:15px;font-size:19px}.brand h1{font-size:13px;letter-spacing:3px}.song-pill{max-width:100%;font-size:12px;padding:6px 12px;margin-left:auto}.scene-panel{inset:100px 0 155px}#scene{height:100%}.listening{left:6%;right:6%;bottom:26px}.stem-legend{gap:12px 18px;font-size:11px;margin-bottom:24px;letter-spacing:1px}.transport{gap:12px;flex-wrap:wrap}.play-toggle{width:42px;height:42px}#playTime{font-size:11px}#seek{order:4;flex-basis:100%;margin-top:8px}.more{margin-left:auto}.tools-panel{right:16px;bottom:100px;padding:16px}.brand-divider{font-size:14px}}
+
+#seek{appearance:none;-webkit-appearance:none;border:0;border-radius:4px;background:linear-gradient(to right,#d5b3ee var(--played,0%),#8c829f70 var(--played,0%));height:4px}#seek::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:12px;height:12px;background:#e5c9fa;border-radius:50%;box-shadow:0 0 12px #d5a9ffb0}#seek::-moz-range-thumb{width:12px;height:12px;border:0;background:#e5c9fa;border-radius:50%}
 </style>
 <main>
-<header><div><div class="tag">HYA / SOUND IN LAYERS</div><h1>看见音乐的层次。</h1><p>人声、低音、钢琴、吉他、鼓与其他声部，共享一条时间线。</p></div><small>本机处理 · 无需账号<br>先分析，再随音乐播放</small></header>
+<header class="masthead"><div class="brand"><span class="crescent" aria-hidden="true"></span><span>H Y A</span><span class="brand-divider">|</span><h1>月下听见旋律</h1></div><div class="song-pill">♫ <span id="songName">等待载入曲目</span></div></header>
+<section class="scene-panel"><canvas id="scene" aria-label="六声部叠加旋律：右侧固定笔尖随音高上下运动，左侧保留旋律轨迹，背景显示实时频谱"></canvas></section>
+<footer class="listening">
+<div class="stem-legend"><span style="--stem:#edcc8e">人声</span><span style="--stem:#83c9b0">低音</span><span style="--stem:#9ebfee">钢琴</span><span style="--stem:#c5a2df">吉他</span><span style="--stem:#e8a18d">鼓</span><span style="--stem:#87c8d4">其他</span></div>
+
+<div class="transport"><button id="playToggle" class="play-toggle" aria-label="播放">▶</button><span id="playTime">00:00 / 00:00</span><input id="seek" type="range" min="0" max="100" step="0.01" value="0" aria-label="播放进度"><button id="more" class="more" aria-label="更多设置" aria-expanded="false" aria-controls="toolsPanel">···</button></div>
+<audio id="audio" preload="metadata"></audio><input id="motion" type="checkbox" checked hidden>
+<p id="audioStatus" role="status"></p>
+</footer>
+<section id="toolsPanel" class="tools-panel" hidden><div class="tools-heading">曲目与显示<button id="closeTools" aria-label="关闭设置">×</button></div>
 <div class="controls">
 <label class="upload primary">导入音频<input id="file" type="file" accept="audio/*" hidden></label>
 <button id="sample">载入默认曲目</button><button id="demo">体验示例声音</button>
 <label class="mode">分析方式<select id="mode"><option value="ml">Demucs 六轨分析</option><option value="quick">快速音高估计</option></select></label>
-<button id="cancel" hidden>取消分析</button><button id="save" disabled>导出参数</button><button id="png" disabled>保存图片</button>
+<button id="cancel" hidden>取消分析</button><button id="save" disabled>导出参数</button><button id="png" disabled>保存音符图</button>
 </div>
 <div id="status" role="status" aria-live="polite">导入 WAV / MP3 / M4A / AIFF。最长 10 分钟，最大 128 MB。</div>
 <progress id="progress" max="1" value="0" aria-label="分析进度" hidden></progress>
 <p class="hint" id="modeHint">默认曲目自动加载；已缓存的分析可直接复用。新曲目先在本机完成六轨分析。</p>
-<section class="player"><audio id="audio" controls preload="metadata"></audio><label><input id="motion" type="checkbox" checked>连续滚动</label><small>播放、暂停或拖动进度 · 六轨同步</small></section>
-<p class="hint" id="audioStatus" role="status"></p>
-<div class="grid">
-<section class="panel"><div class="eyebrow">01 / SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。</small></section>
-<details class="panel acoustics"><summary>原曲声学信息 · 能量与频谱重心</summary><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></details>
-</div>
-
+<div class="scene-options"><label><input id="guides" type="checkbox" checked>MIDI 参考</label><label><input id="spectrum" type="checkbox" checked>实时频谱</label><small id="spectrumStatus">播放后显示频谱</small></div>
+<details id="rawTracks" class="panel timeline"><summary>查看原始六轨 · MIDI 音符与起音</summary><div class="eyebrow">SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。</small></details>
+<details id="acoustics" class="panel acoustics"><summary>原曲声学信息 · 能量与频谱重心</summary><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></details>
 <p class="hint" id="warnings"></p>
-<p id="limits">分轨与音符均为模型估计，可能漏检或混入其他声部。人声轨可能同时包含主唱与和声，音符条不代表连续滑音。示例是合成旋律与和弦，不含真实人声。</p>
+<p id="limits">旋律线为各声部较强音符的平滑轨迹，并非精确滑音转写。鼓与其他声部表示起音和能量；静音时不绘制曲线。右侧笔尖固定，左侧展示最近 10 秒。</p>
+</section>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -43,6 +66,127 @@ const lanes=[
  {id:'other',label:'未归类残余',kind:'energy',color:'#87c8d4'}
 ];
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)$('motion').checked=false;
+// All stems share one pitch space. The pen has a fixed x; history lies to its left.
+let melodies={},audioContext=null,analyser=null,spectrumBins=null,mediaSource=null;
+const melodyStep=.05;
+function prepareMelodies(){
+ melodies={};
+ for(const lane of lanes){
+  const track=result.tracks?.[lane.id];if(!track)continue;
+  const notes=[...(track.notes||[])].sort((a,b)=>a.start-b.start);
+  const events=track.onsets||[];let next=0,active=[],smoothed=null,eventIndex=0;
+  const points=[];
+  for(let i=0;i<=Math.ceil(result.duration/melodyStep);i++){
+   const t=i*melodyStep;let pitch=null,level=0;
+   if(lane.kind==='notes'){
+    while(next<notes.length&&notes[next].start<=t)active.push(notes[next++]);
+    active=active.filter(n=>n.end>t);
+    // Strongest concurrent note is a visual melody candidate, not a new transcription.
+    const note=active.reduce((best,n)=>!best||(n.amplitude??.5)>(best.amplitude??.5)?n:best,null);
+    if(note){pitch=note.pitch;level=note.amplitude??.5}
+   }else if(lane.kind==='onsets'){
+    while(eventIndex+1<events.length&&events[eventIndex+1].t<=t)eventIndex++;
+    const event=events[eventIndex],age=event?t-event.t:Infinity;
+    if(age>=0&&age<.35){level=event.strength*Math.exp(-age*10);pitch=42+level*26}
+   }else{
+    const frame=nearestFrame(track.frames,t);level=frame.energy||0;
+    if(level>.015)pitch=38+level*36;
+   }
+   smoothed=pitch===null?null:smoothed===null?pitch:smoothed+(pitch-smoothed)*.22;
+   points.push({t,pitch:smoothed,level});
+  }
+  melodies[lane.id]=points;
+ }
+}
+async function enableSpectrum(){
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio){$('spectrumStatus').textContent='此浏览器不支持实时频谱';return}
+  if(!audioContext){
+   audioContext=new Audio();analyser=audioContext.createAnalyser();
+   analyser.fftSize=2048;analyser.smoothingTimeConstant=.75;
+   analyser.connect(audioContext.destination);
+   mediaSource=audioContext.createMediaElementSource($('audio'));mediaSource.connect(analyser);
+   spectrumBins=new Uint8Array(analyser.frequencyBinCount);
+  }
+  if(audioContext.state==='suspended')await audioContext.resume();
+  $('spectrumStatus').textContent=audioContext.state==='running'?'实时 FFT · 低频 → 高频':'点击播放器启用频谱';
+ }catch(error){$('spectrumStatus').textContent='实时频谱不可用';}
+}
+function scenePoint(lane,time){
+ const points=melodies[lane.id];
+ if(points){
+  const index=Math.max(0,Math.floor(time/melodyStep)),a=points[index],b=points[index+1];
+  if(!a||a.pitch===null)return null;
+  const mix=b&&b.pitch!==null?Math.max(0,Math.min(1,(time-a.t)/melodyStep)):0;
+  return {pitch:a.pitch+(mix?(b.pitch-a.pitch)*mix:0),level:a.level};
+ }
+ if(!result?.tracks){
+  const voice=nearestFrame(result?.frames,time).voices?.[lane.id==='vocals'?0:1];
+  if(voice?.pitch!=null&&voice.confidence>=.12)return {pitch:voice.pitch,level:voice.confidence};
+ }
+ return null;
+}
+function sceneGeometry(w,h,time){
+ const left=32,right=w-24,pen=left+(right-left)*.88;
+ return {left,right,pen,xAt:t=>pen+(t-time)*(pen-left)/10,yAt:p=>h*.92-(p-24)/72*h*.28};
+}
+function drawScene(){
+ const [c,w,h]=setup($('scene')),t=$('audio').currentTime||0;
+ const {left,right,pen,xAt,yAt}=sceneGeometry(w,h,t);
+ // Real FFT bins: no synthetic spectrum when audio is paused/unavailable.
+ if($('spectrum').checked&&analyser&&spectrumBins&&!$('audio').paused&&!$('audio').seeking){
+  analyser.getByteFrequencyData(spectrumBins);
+  const count=Math.min(180,Math.floor(w/4)),nyquist=audioContext.sampleRate/2;
+  for(let i=0;i<count;i++){
+   const low=30*Math.pow(16000/30,i/count),high=30*Math.pow(16000/30,(i+1)/count);
+   const from=Math.max(1,Math.floor(low/nyquist*spectrumBins.length)),to=Math.min(spectrumBins.length,Math.max(from+1,Math.ceil(high/nyquist*spectrumBins.length)));
+   let energy=0;for(let bin=from;bin<to;bin++)energy+=spectrumBins[bin]**2;
+   const magnitude=Math.sqrt(energy/Math.max(1,to-from))/255,height=magnitude*magnitude*h*.2;
+   const x=left+i*(right-left)/count,bw=w<760?1:1.5;
+   c.fillStyle=i%2?'rgba(191,139,234,.46)':'rgba(137,205,230,.40)';c.fillRect(x,h*.58-height,bw,height);
+   c.fillStyle='rgba(168,155,226,.10)';c.fillRect(x,h*.58,bw,height*.3);
+  }
+ }
+ if(!result){c.fillStyle='#ddd4ed';c.font='13px sans-serif';c.textAlign='center';c.fillText(busy?'正在聆听，等待分析…':'载入歌曲，让旋律浮现于月色。',w/2,h*.72);return}
+ const visible=result.tracks?(result.piano_solo?lanes.filter(l=>l.id==='piano'):lanes):lanes.slice(0,2);
+ c.save();c.beginPath();c.rect(left,h*.34,right-left,h*.60);c.clip();
+ if($('guides').checked){
+  for(let pitch=24;pitch<=96;pitch+=12){c.strokeStyle='#e3d7f014';c.lineWidth=1;c.beginPath();c.moveTo(left,yAt(pitch));c.lineTo(right,yAt(pitch));c.stroke()}
+  for(const lane of visible){
+   const track=result.tracks?.[lane.id];if(!track)continue;
+   const notes=$('candidates').checked?[...(track.notes||[]),...(track.note_candidates||[])]:track.notes||[];
+   c.fillStyle=lane.color;
+   for(const note of notes){
+    if(note.end<t-10||note.start>t+2)continue;
+    c.globalAlpha=note.status ? .04 : .14;
+    c.fillRect(xAt(note.start),yAt(note.pitch)-2,Math.max(2,xAt(note.end)-xAt(note.start)),4);
+   }
+  }
+  c.globalAlpha=1;
+ }
+ // One common fixed pen line; paths never advance beyond it.
+ c.strokeStyle='#f0e6ff60';c.lineWidth=1;c.beginPath();c.moveTo(pen,h*.57);c.lineTo(pen,h*.96);c.stroke();
+ for(const lane of visible){
+  c.strokeStyle=lane.color;c.lineWidth=2;c.lineJoin='round';c.lineCap='round';c.shadowColor=lane.color;c.shadowBlur=8;
+  c.beginPath();let connected=false;
+  const first=Math.max(0,Math.ceil((t-10)/melodyStep));
+  for(let i=first;i*melodyStep<t;i++){
+   const at=i*melodyStep,p=scenePoint(lane,at);
+   if(!p){connected=false;continue}
+   const x=xAt(at),y=yAt(p.pitch);
+   if(connected)c.lineTo(x,y);else c.moveTo(x,y);connected=true;
+  }
+  const current=scenePoint(lane,t);
+  if(current){if(connected)c.lineTo(pen,yAt(current.pitch));else c.moveTo(pen,yAt(current.pitch))}
+  c.stroke();
+  if(current){c.fillStyle=lane.color;c.beginPath();c.arc(pen,yAt(current.pitch),3.5,0,Math.PI*2);c.fill()}
+ }
+ c.restore();c.shadowBlur=0;c.globalAlpha=1;c.fillStyle='#e5dcf2';c.font='11px sans-serif';c.textAlign='right';c.fillText(t.toFixed(1)+' s',pen,h*.97);
+}
+$('audio').onpointerdown=enableSpectrum;
+$('audio').onplay=enableSpectrum;
+
 function setup(canvas){
  const box=canvas.getBoundingClientRect(),d=devicePixelRatio||1;
  if(canvas.width!==Math.round(box.width*d)||canvas.height!==Math.round(box.height*d)){canvas.width=Math.round(box.width*d);canvas.height=Math.round(box.height*d)}
@@ -55,6 +199,7 @@ function nearestFrame(frames,time){
  return lo>0&&time-frames[lo-1].t<frames[lo].t-time?frames[lo-1]:frames[lo];
 }
 function draw(staticOnly=false){
+ if(!staticOnly){drawScene();updateTransport();if($('rawTracks').open===false&&$('acoustics').open===false)return}
  const [c,w,h]=setup($('finger'));c.fillStyle='#14252e';c.fillRect(0,0,w,h);
  if(!result){c.fillStyle='#91abae';c.font='14px sans-serif';c.textAlign='center';c.fillText(busy?'正在读取六轨数据…':'尚未载入可视化数据',w/2,h/2);setup($('charts'));return}
  const t=$('audio').currentTime||0,frames=result.frames||[],f=nearestFrame(frames,t),ml=!!result.tracks;
@@ -152,6 +297,7 @@ async function request(path,options={}){
  if(!response.ok)throw Error(data.error||`请求失败 (${response.status})`);return data;
 }
 function resetTrack(){
+ melodies={};
  result=null;$('candidateControl').hidden=true;$('candidates').checked=false;$('audio').pause();$('audio').removeAttribute('src');$('audio').load();
  if(url){URL.revokeObjectURL(url);url=null}
  $('audioStatus').textContent='';$('warnings').textContent='';
@@ -160,6 +306,7 @@ function resetTrack(){
 function showResult(data){
  if(!data||!Number.isFinite(data.duration)||!Array.isArray(data.frames))throw Error('分析数据不完整，请重新预缓存');
  result=data;
+ prepareMelodies();
  $('candidateControl').hidden=!result.tracks||result.piano_solo||!Object.values(result.tracks).some(
   track=>track.note_candidates?.length||track.onset_candidates?.length);
  $('warnings').textContent=(result.warnings||[]).join(' ');
@@ -192,6 +339,7 @@ async function load(blob,name,playbackBlob=blob){
   else output=await analyzeML(blob);
   if(cancelRequested)throw Error('已取消分析');
   showResult(output.data);url=URL.createObjectURL(playbackBlob);$('audio').src=url;
+  $('songName').textContent=name;
   $('status').textContent=`${name} · ${output.cached?'已复用缓存':'分析完成'} · ${result.duration.toFixed(1)} 秒`;
   draw();
  }catch(error){$('status').textContent=cancelRequested?'已取消分析，可以重新导入。':'无法分析：'+error.message+'。可以重试，或选择快速音高估计。'}
@@ -204,13 +352,13 @@ async function loadDefault(){
  $('status').textContent='正在读取默认曲目…';$('progress').removeAttribute('value');draw();
  let mediaReady=false;
  try{
-  const info=await request('/default');
+  const info=await request('/default');$('songName').textContent=info.name;
   $('audio').src='/sample?playback=1&token='+encodeURIComponent(token);$('audio').load();mediaReady=true;
   $('mode').value='ml';$('mode').onchange();
   $('status').textContent=`${info.name} · 可点击播放 · 正在读取六轨缓存…`;
   showResult(await request('/default/result'));
   $('status').textContent=`${info.name} · 已复用缓存 · ${result.duration.toFixed(1)} 秒 · 点击播放`;
- }catch(error){$('status').textContent=(mediaReady?'六轨数据暂不可用，仍可尝试播放。':'无法载入默认曲目：')+error.message}
+ }catch(error){$('audioStatus').textContent='默认曲目加载遇到问题，请在更多设置中查看。';$('status').textContent=(mediaReady?'六轨数据暂不可用，仍可尝试播放。':'无法载入默认曲目：')+error.message}
  finally{setBusy(false);draw()}
 }
 $('sample').onclick=loadDefault;
@@ -224,9 +372,21 @@ $('demo').onclick=()=>{
 };
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('save').onclick=()=>{if(result)download(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),'hya-analysis.json')};
-$('png').onclick=()=>{if(!result)return;draw(true);$('finger').toBlob(blob=>{if(blob)download(blob,'hya-tracks.png')});draw()};
+$('png').onclick=()=>{if(!result)return;const wasOpen=$('rawTracks').open;$('rawTracks').open=true;draw(true);$('finger').toBlob(blob=>{if(blob)download(blob,'hya-tracks.png')});$('rawTracks').open=wasOpen;draw()};
 $('audio').onerror=()=>{if($('audio').getAttribute('src'))$('audioStatus').textContent='音频加载失败，请检查网络或重新载入曲目。'};
 $('audio').onloadedmetadata=()=>{$('audioStatus').textContent=''};
+function formatTime(t){return Math.floor(t/60).toString().padStart(2,'0')+':'+Math.floor(t%60).toString().padStart(2,'0')}
+function updateTransport(){
+ const audio=$('audio'),duration=Number.isFinite(audio.duration)?audio.duration:result?.duration||0;
+ $('playTime').textContent=formatTime(audio.currentTime||0)+' / '+formatTime(duration);
+ $('seek').max=duration||1;$('seek').value=audio.currentTime||0;
+ if($('seek').style)$('seek').style.setProperty('--played',((audio.currentTime||0)/Math.max(1,duration)*100)+'%');
+ $('playToggle').textContent=audio.paused?'▶':'Ⅱ';$('playToggle').ariaLabel=audio.paused?'播放':'暂停';
+}
+$('playToggle').onclick=async()=>{try{await enableSpectrum();if($('audio').paused)await $('audio').play();else $('audio').pause()}catch(error){$('audioStatus').textContent='暂时无法播放，请载入曲目后重试。'}};
+$('seek').oninput=()=>{if(Number.isFinite($('audio').duration))$('audio').currentTime=Number($('seek').value)};
+$('more').onclick=()=>{$('toolsPanel').hidden=!$('toolsPanel').hidden;$('more').ariaExpanded=String(!$('toolsPanel').hidden)};
+$('closeTools').onclick=()=>{$('toolsPanel').hidden=true;$('more').ariaExpanded='false'};
 function loop(){draw();requestAnimationFrame(loop)}loop();
 window.addEventListener('DOMContentLoaded',loadDefault,{once:true});
 </script>
