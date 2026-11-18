@@ -20,7 +20,7 @@ assert.equal(b.dots.length,6,'six layers overlap the same canvas');
 for(const stroke of b.strokes.filter(s=>s.color===gold))assert(stroke.points.every(p=>p[0]<=dot(b,gold).x),'no melody drawn beyond current pen');
 assert.deepEqual(render(.5),a,'seeking rebuilds the exact previous trace');assert.deepEqual(render(1.5),b,'pause/redraw never changes history');
 assert(!dot(render(3.5),gold),'silent gap has no invented melody');
-assert.equal(run('scenePoint(lanes[0],.5).pitch'),60,'strongest simultaneous note is chosen');
+assert.equal(run('scenePoint(lanes[0],.5).pitch'),60,'continuous upper voice is chosen');
 run('result.piano_solo=true');assert.deepEqual(render(1.5).dots.map(d=>d.color),[blue]);
 run("result={duration:2,frames:[],tracks:{vocals:{notes:[],note_candidates:[{start:0,end:2,pitch:80}]}}};prepareMelodies()");assert.equal(render(1).dots.length,0,'uncertain candidates never become melody');
 console.log('PASS: fixed pen, vertical pitch movement, shared layers, six colors, past-only paths, pause/seek, silence, solo and candidates');

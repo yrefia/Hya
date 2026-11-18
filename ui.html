@@ -50,7 +50,7 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <details id="rawTracks" class="panel timeline"><summary>查看原始六轨 · MIDI 音符与起音</summary><div class="eyebrow">SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。</small></details>
 <details id="acoustics" class="panel acoustics"><summary>原曲声学信息 · 能量与频谱重心</summary><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></details>
 <p class="hint" id="warnings"></p>
-<p id="limits">旋律线为各声部较强音符的平滑轨迹，并非精确滑音转写。鼓与其他声部表示起音和能量；静音时不绘制曲线。右侧笔尖固定，左侧展示最近 10 秒。</p>
+<p id="limits">旋律线根据音区与前后衔接追踪候选声部，钢琴偏向上声部；不保证等同于人听出的主旋律。鼓与其他声部表示起音和能量；静音时不绘制曲线。右侧笔尖固定，左侧展示最近 10 秒。</p>
 </section>
 </main>
 <script>
@@ -69,20 +69,64 @@ if(matchMedia('(prefers-reduced-motion: reduce)').matches)$('motion').checked=fa
 // All stems share one pitch space. The pen has a fixed x; history lies to its left.
 let melodies={},audioContext=null,analyser=null,spectrumBins=null,mediaSource=null;
 const melodyStep=.05;
+// Offline voice tracking over note boundaries. Scores are musical heuristics,
+// not calibrated probabilities; the original transcription is never modified.
+function selectMelody(input,duration,lane){
+ const notes=input.filter(n=>Number.isFinite(n.start)&&Number.isFinite(n.end)&&Number.isFinite(n.pitch)&&n.end>n.start&&n.start<duration&&n.end>0)
+  .map(n=>({...n,start:Math.max(0,n.start),end:Math.min(duration,n.end)})).sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
+ if(!notes.length)return [];
+ const pitches=notes.map(n=>n.pitch).sort((a,b)=>a-b);
+ const lower=lane==='bass',quantile=(pitches.length-1)*(lower?.2:.8);
+ const reference=pitches[Math.floor(quantile)]+(pitches[Math.ceil(quantile)]-pitches[Math.floor(quantile)])*(quantile%1);
+ const times=[...new Set([0,duration,...notes.flatMap(n=>[n.start,n.end])])].sort((a,b)=>a-b);
+ let previous=[{id:-1,score:0}],next=0,active=[];const history=[];
+ for(let k=0;k<times.length-1;k++){
+  const t=times[k],dt=times[k+1]-t;
+  while(next<notes.length&&notes[next].start<=t)active.push(next++);
+  active=active.filter(id=>notes[id].end>t);
+  const states=[-1,...active].map(id=>{
+   const n=notes[id];let reward=0;
+   if(n){
+    const register=(lower?reference-n.pitch:n.pitch-reference)/12;
+    reward=dt*(1+Math.max(-2,Math.min(.6,register))+.15*Math.min(1,n.end-n.start)+.1*(n.amplitude??.5));
+   }
+   let score=-Infinity,parent=0;
+   previous.forEach((p,j)=>{
+    // Never enter a decaying accompaniment note halfway through its sustain.
+    if(id!==-1&&id!==p.id&&n.start!==t)return;
+    let cost=0;
+    if(id!==p.id){
+     if(id===-1||p.id===-1)cost=.12;
+     else cost=.15+Math.min(.9,Math.abs(n.pitch-notes[p.id].pitch)*.03);
+    }
+    const value=p.score+reward-cost;
+    if(value>score){score=value;parent=j;}
+   });
+   return {id,score,parent};
+  });
+  history.push(states);previous=states;
+ }
+ let best=previous.reduce((a,s,i)=>s.score>previous[a].score?i:a,0);const segments=[];
+ for(let k=history.length-1;k>=0;k--){
+  const state=history[k][best];
+  segments.push({start:times[k],end:times[k+1],note:state.id<0?null:notes[state.id]});best=state.parent;
+ }
+ return segments.reverse();
+}
 function prepareMelodies(){
  melodies={};
  for(const lane of lanes){
   const track=result.tracks?.[lane.id];if(!track)continue;
   const notes=[...(track.notes||[])].sort((a,b)=>a.start-b.start);
-  const events=track.onsets||[];let next=0,active=[],smoothed=null,eventIndex=0;
+  const segments=lane.kind==='notes'?selectMelody(notes,result.duration,lane.id):[];
+  const events=track.onsets||[];let segmentIndex=0,smoothed=null,eventIndex=0;
   const points=[];
   for(let i=0;i<=Math.ceil(result.duration/melodyStep);i++){
    const t=i*melodyStep;let pitch=null,level=0;
    if(lane.kind==='notes'){
-    while(next<notes.length&&notes[next].start<=t)active.push(notes[next++]);
-    active=active.filter(n=>n.end>t);
-    // Strongest concurrent note is a visual melody candidate, not a new transcription.
-    const note=active.reduce((best,n)=>!best||(n.amplitude??.5)>(best.amplitude??.5)?n:best,null);
+    while(segmentIndex+1<segments.length&&segments[segmentIndex].end<=t)segmentIndex++;
+    const segment=segments[segmentIndex];
+    const note=segment&&t>=segment.start&&t<segment.end?segment.note:null;
     if(note){pitch=note.pitch;level=note.amplitude??.5}
    }else if(lane.kind==='onsets'){
     while(eventIndex+1<events.length&&events[eventIndex+1].t<=t)eventIndex++;
@@ -92,7 +136,7 @@ function prepareMelodies(){
     const frame=nearestFrame(track.frames,t);level=frame.energy||0;
     if(level>.015)pitch=38+level*36;
    }
-   smoothed=pitch===null?null:smoothed===null?pitch:smoothed+(pitch-smoothed)*.22;
+   smoothed=lane.kind==='notes'?pitch:pitch===null?null:smoothed===null?pitch:smoothed+(pitch-smoothed)*.22;
    points.push({t,pitch:smoothed,level});
   }
   melodies[lane.id]=points;
@@ -118,7 +162,7 @@ function scenePoint(lane,time){
  if(points){
   const index=Math.max(0,Math.floor(time/melodyStep)),a=points[index],b=points[index+1];
   if(!a||a.pitch===null)return null;
-  const mix=b&&b.pitch!==null?Math.max(0,Math.min(1,(time-a.t)/melodyStep)):0;
+  const mix=lane.kind!=='notes'&&b&&b.pitch!==null?Math.max(0,Math.min(1,(time-a.t)/melodyStep)):0;
   return {pitch:a.pitch+(mix?(b.pitch-a.pitch)*mix:0),level:a.level};
  }
  if(!result?.tracks){
