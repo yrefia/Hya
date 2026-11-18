@@ -52,8 +52,15 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <section id="toolsPanel" class="tools-panel" hidden><div class="tools-heading">曲目与显示<button id="closeTools" aria-label="关闭设置">×</button></div>
 <div class="controls">
 <label class="upload primary">导入音频<input id="file" type="file" accept="audio/*" hidden></label>
-<button id="sample">载入默认曲目</button><button id="demo">自由合成体验</button>
-<label class="mode">标准示范<select id="standardDemo"><option value="pure">纯净单音旋律</option><option value="louder-bass">旋律与更响的低音伴奏</option></select></label><button id="loadStandard">载入标准示范</button>
+<label class="mode">曲目<select id="trackChoice">
+<option value="" selected disabled>选择曲目…</option>
+<option value="default">默认曲目</option>
+<option value="synthetic">自由合成体验</option>
+<optgroup label="标准示范">
+<option value="pure">纯净单音旋律</option>
+<option value="louder-bass">旋律与更响的低音伴奏</option>
+</optgroup>
+</select></label>
 <label class="mode">分析方式<select id="mode"><option value="ml">Demucs 六轨分析</option><option value="quick">快速音高估计</option></select></label>
 <button id="cancel" hidden>取消分析</button><button id="save" disabled>导出参数</button><button id="png" disabled>保存音符图</button>
 </div>
@@ -341,7 +348,7 @@ function draw(staticOnly=false){
  $('duration').textContent=result.duration.toFixed(1);$('centroid').textContent=Math.round(f.centroid);$('energy').textContent=f.rms>0?(20*Math.log10(f.rms)).toFixed(1):'−∞';
 }
 function setBusy(value){
- busy=value;for(const id of ['file','demo','sample','mode','standardDemo','loadStandard'])$(id).disabled=value;
+ busy=value;for(const id of ['file','trackChoice','mode'])$(id).disabled=value;
  $('save').disabled=$('png').disabled=value||!result;
  $('cancel').hidden=!value||$('mode').value==='quick';$('cancel').disabled=false;
  $('progress').hidden=!value;
@@ -429,9 +436,8 @@ async function loadDefault(){
  }catch(error){$('audioStatus').textContent='默认曲目加载遇到问题，请在更多设置中查看。';$('status').textContent=(mediaReady?'六轨数据暂不可用，仍可尝试播放。':'无法载入默认曲目：')+error.message}
  finally{setBusy(false);draw()}
 }
-async function loadStandard(){
+async function loadStandard(id){
  if(busy)return;
- const id=$('standardDemo').value;
  if(!['pure','louder-bass'].includes(id))return;
  resetTrack();setBusy(true);$('cancel').hidden=true;
  const name=id==='pure'?'标准示范 · 纯净单音旋律':'标准示范 · 旋律与更响的低音伴奏';
@@ -445,16 +451,22 @@ async function loadStandard(){
  }catch(error){$('status').textContent='标准示范数据加载失败：'+error.message}
  finally{setBusy(false);draw()}
 }
-$('loadStandard').onclick=loadStandard;
-$('sample').onclick=loadDefault;
+$('trackChoice').onchange=event=>{
+ const choice=event.target.value;
+ event.target.value='';
+ if(!choice||busy)return;
+ if(choice==='default')return loadDefault();
+ if(choice==='synthetic')return loadSynthetic();
+ return loadStandard(choice);
+};
 $('file').onchange=e=>{if(e.target.files[0])load(e.target.files[0],e.target.files[0].name)};
-$('demo').onclick=()=>{
+function loadSynthetic(){
  let rate=22050,n=rate*9,b=new ArrayBuffer(44+n*2),v=new DataView(b);
  function str(o,s){[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)))}
  str(0,'RIFF');v.setUint32(4,36+n*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);
  for(let i=0;i<n;i++){let t=i/rate,f=[523.25,587.33,659.25,783.99,659.25,587.33][Math.floor(t/.75)%6],a=(.12+.22*(.5+.5*Math.sin(2*Math.PI*1.5*t)))*Math.min(1,t*10,(9-t)*10);v.setInt16(44+i*2,Math.round(32767*(a*Math.sin(2*Math.PI*f*t)+.06*Math.sin(2*Math.PI*130.81*t)+.05*Math.sin(2*Math.PI*164.81*t)+.04*Math.sin(2*Math.PI*196*t))*Math.min(1,t*10,(9-t)*10)),true)}
- load(new Blob([b],{type:'audio/wav'}),'合成示例 · 旋律与 C 大三和弦');
-};
+ return load(new Blob([b],{type:'audio/wav'}),'合成示例 · 旋律与 C 大三和弦');
+}
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('save').onclick=()=>{if(result)download(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),'hya-analysis.json')};
 $('png').onclick=()=>{if(!result)return;const wasOpen=$('rawTracks').open;$('rawTracks').open=true;draw(true);$('finger').toBlob(blob=>{if(blob)download(blob,'hya-tracks.png')});$('rawTracks').open=wasOpen;draw()};

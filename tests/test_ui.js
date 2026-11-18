@@ -8,7 +8,7 @@ function harness(responses){
  const element=id=>elements[id]||(elements[id]={value:id==='mode'?'ml':'',checked:true,currentTime:0,getBoundingClientRect:()=>({width:800,height:600}),getContext:()=>ctx,pause(){},load(){},getAttribute(key){return this[key]},removeAttribute(key){delete this[key]},toBlob(callback){callback(new Blob(['png']))}});
  const document={getElementById:element,createElement:()=>({click(){downloads.push(this.download)}})};
  const box={window:{addEventListener(name,fn){listeners[name]=fn}},document,location:{search:'?token=test'},URLSearchParams,Blob,devicePixelRatio:1,matchMedia:()=>({matches:false}),requestAnimationFrame:()=>{},setTimeout:fn=>{queueMicrotask(fn);return 1},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL:()=>{}},fetch:async(path,options={})=>{requests.push({path,options});const next=responses.shift();assert(next,`Unexpected fetch ${path}`);if(typeof next==='function')return next(path,options);return {ok:next.ok!==false,status:next.status||200,json:async()=>next.body??next}}};
- vm.createContext(box);vm.runInContext(source,box);return {box,elements,requests,downloads,listeners,run:code=>vm.runInContext(code,box)};
+ vm.createContext(box);vm.runInContext(source,box);return {box,elements,requests,downloads,listeners,run:code=>vm.runInContext(code,box),chooseTrack(value){const target=element('trackChoice');target.value=value;return target.onchange({target})}};
 }
 const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centroid:400}],tracks:{vocals:{notes:[]},bass:{notes:[]},drums:{onsets:[]}},warnings:['分轨可能存在泄漏']};
 (async()=>{
@@ -36,25 +36,32 @@ const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centro
  finish({ok:false,status:409,json:async()=>({error:'缓存缺失，请在电脑上预缓存'})});await loading;
  assert.equal(h.elements.audio.src,'/sample?playback=1&token=test');
  assert.match(h.elements.status.textContent,/仍可尝试播放.*缓存缺失/);
- assert.equal(h.elements.sample.disabled,false);assert.equal(h.elements.save.disabled,true);
+ assert.equal(h.elements.trackChoice.disabled,false);assert.equal(h.elements.save.disabled,true);
  h=harness([{name:'song'},()=>({ok:false,status:502,json:async()=>{throw new SyntaxError('The string did not match the expected pattern.')}})]);
  await h.listeners.DOMContentLoaded();assert.match(h.elements.status.textContent,/访问通道.*HTTP 502/);
  h=harness([()=>({ok:false,status:413,json:async()=>{throw new SyntaxError('bad json')}})]);
  await h.run("load(new Blob(['audio']), 'large.flac')");assert.match(h.elements.status.textContent,/拒绝了过大的音频上传/);
  h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}}]);await h.listeners.DOMContentLoaded();assert.match(h.elements.status.textContent,/默认曲目不存在/);assert.equal(h.elements.file.disabled,false);
+ // The dropdown also retries the same selection and respects the analysis mode.
+ h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}},{name:'song'},result]);
+ await h.chooseTrack('default');assert.equal(h.elements.trackChoice.value,'');
+ await h.chooseTrack('default');assert.deepEqual(h.requests.map(r=>r.path),['/default','/default','/default/result']);
+ h=harness([{...result,tracks:undefined}]);h.elements.mode.value='quick';
+ const synthetic=h.chooseTrack('synthetic');assert.equal(h.elements.trackChoice.disabled,true);
+ await synthetic;assert.equal(h.requests[0].path,'/analyze');assert.equal(h.requests[0].options.body.type,'audio/wav');
+ assert.match(h.elements.songName.textContent,/合成示例/);assert.equal(h.elements.trackChoice.disabled,false);
  // Standard fixtures use real cached transcription, never upload or synthetic truth as predictions.
  const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/demos/pure.json'),'utf8'));
- h=harness([fixture]);h.run("$('standardDemo').value='pure'");
- await h.run('loadStandard()');
+ h=harness([fixture]);await h.chooseTrack('pure');
  assert.deepEqual(h.requests.map(r=>r.path),['/demos/pure.json']);
  assert.equal(h.elements.audio.src,'/demos/pure.wav?token=test');
  assert.equal(h.elements.referencePanel.hidden,false);
  assert.equal(h.elements.referenceNotes.textContent.split('✓').length-1,8);
- assert.equal(h.elements.loadStandard.disabled,false);
+ assert.equal(h.elements.trackChoice.disabled,false);
  h.run('resetTrack()');assert.equal(h.elements.referencePanel.hidden,true);
- h=harness([{ok:false,status:404,body:{error:'missing'}}]);h.run("$('standardDemo').value='louder-bass'");
- await h.run('loadStandard()');assert.match(h.elements.status.textContent,/标准示范数据加载失败/);
+ h=harness([{ok:false,status:404,body:{error:'missing'}}]);
+ await h.chooseTrack('louder-bass');assert.match(h.elements.status.textContent,/标准示范数据加载失败/);
  assert.equal(h.elements.audio.src,'/demos/louder-bass.wav?token=test');
- assert.equal(h.elements.loadStandard.disabled,false);
- console.log('PASS: default auto-load/cache/missing file, ML polling/auth, cache, export, failure recovery, cancellation during upload, quick fallback');
+ assert.equal(h.elements.trackChoice.disabled,false);
+ console.log('PASS: track dropdown, default auto-load/cache/missing file, ML polling/auth, cache, export, failure recovery, cancellation during upload, quick fallback');
 })().catch(error=>{console.error(error);process.exitCode=1});
