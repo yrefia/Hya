@@ -189,6 +189,25 @@ class HTTPTests(JobFixture, unittest.TestCase):
         connection.close()
         return status, json.loads(payload) if payload else None
 
+    def test_standard_demos_audio_and_independent_reference(self):
+        for name in ('pure', 'louder-bass'):
+            self.assertEqual(self.request('GET', f'/demos/{name}.json', authorized=False)[0], 403)
+            self.assertEqual(self.request('GET', f'/demos/{name}.wav', authorized=False)[0], 403)
+            code, data = self.request('GET', f'/demos/{name}.json')
+            self.assertEqual(code, 200)
+            self.assertEqual([n['pitch'] for n in data['reference_melody']], [72, 74, 76, 79, 76, 74, 72, 72])
+            self.assertTrue(data['tracks']['piano']['notes'])
+            self.assertIn('basic_pitch', data['provenance'])
+            connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=3)
+            connection.request('GET', f'/demos/{name}.wav?token={app.TOKEN}', headers={'Range': 'bytes=0-43'})
+            response = connection.getresponse()
+            self.assertEqual(response.status, 206)
+            self.assertEqual(response.read()[:4], b'RIFF')
+            connection.close()
+            self.assertEqual(self.request('HEAD', f'/demos/{name}.wav')[0], 200)
+        self.assertEqual(self.request('GET', '/demos/unknown.json')[0], 404)
+        self.assertEqual(self.request('GET', '/demos/../ui.html')[0], 404)
+
     def test_http_authorization_and_routes(self):
         for method, path, body in (('GET', '/default', None), ('GET', '/default/result', None), ('HEAD', '/sample', None), ('GET', '/sample', None), ('POST', '/jobs', b'ok'), ('GET', '/jobs/missing', None),
                                    ('GET', '/jobs/missing/result', None), ('DELETE', '/jobs/missing', None)):

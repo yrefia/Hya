@@ -41,5 +41,19 @@ const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centro
  h=harness([()=>({ok:false,status:413,json:async()=>{throw new SyntaxError('bad json')}})]);
  await h.run("load(new Blob(['audio']), 'large.flac')");assert.match(h.elements.status.textContent,/拒绝了过大的音频上传/);
  h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}}]);await h.listeners.DOMContentLoaded();assert.match(h.elements.status.textContent,/默认曲目不存在/);assert.equal(h.elements.file.disabled,false);
+ // Standard fixtures use real cached transcription, never upload or synthetic truth as predictions.
+ const fixture=JSON.parse(fs.readFileSync('assets/demos/pure.json','utf8'));
+ h=harness([fixture]);h.run("$('standardDemo').value='pure'");
+ await h.run('loadStandard()');
+ assert.deepEqual(h.requests.map(r=>r.path),['/demos/pure.json']);
+ assert.equal(h.elements.audio.src,'/demos/pure.wav?token=test');
+ assert.equal(h.elements.referencePanel.hidden,false);
+ assert.equal(h.elements.referenceNotes.textContent.split('✓').length-1,8);
+ assert.equal(h.elements.loadStandard.disabled,false);
+ h.run('resetTrack()');assert.equal(h.elements.referencePanel.hidden,true);
+ h=harness([{ok:false,status:404,body:{error:'missing'}}]);h.run("$('standardDemo').value='louder-bass'");
+ await h.run('loadStandard()');assert.match(h.elements.status.textContent,/标准示范数据加载失败/);
+ assert.equal(h.elements.audio.src,'/demos/louder-bass.wav?token=test');
+ assert.equal(h.elements.loadStandard.disabled,false);
  console.log('PASS: default auto-load/cache/missing file, ML polling/auth, cache, export, failure recovery, cancellation during upload, quick fallback');
 })().catch(error=>{console.error(error);process.exitCode=1});

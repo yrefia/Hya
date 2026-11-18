@@ -39,7 +39,8 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <section id="toolsPanel" class="tools-panel" hidden><div class="tools-heading">曲目与显示<button id="closeTools" aria-label="关闭设置">×</button></div>
 <div class="controls">
 <label class="upload primary">导入音频<input id="file" type="file" accept="audio/*" hidden></label>
-<button id="sample">载入默认曲目</button><button id="demo">体验示例声音</button>
+<button id="sample">载入默认曲目</button><button id="demo">自由合成体验</button>
+<label class="mode">标准示范<select id="standardDemo"><option value="pure">纯净单音旋律</option><option value="louder-bass">旋律与更响的低音伴奏</option></select></label><button id="loadStandard">载入标准示范</button>
 <label class="mode">分析方式<select id="mode"><option value="ml">Demucs 六轨分析</option><option value="quick">快速音高估计</option></select></label>
 <button id="cancel" hidden>取消分析</button><button id="save" disabled>导出参数</button><button id="png" disabled>保存音符图</button>
 </div>
@@ -47,6 +48,7 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <progress id="progress" max="1" value="0" aria-label="分析进度" hidden></progress>
 <p class="hint" id="modeHint">默认曲目自动加载；已缓存的分析可直接复用。新曲目先在本机完成六轨分析。</p>
 <div class="scene-options"><label><input id="guides" type="checkbox" checked>MIDI 参考</label><label><input id="spectrum" type="checkbox" checked>实时频谱</label><small id="spectrumStatus">播放后显示频谱</small></div>
+<details id="referencePanel" class="panel" hidden><summary>标准答案与旋律对照</summary><p class="hint">C5 D5 E5 G5 · E5 D5 C5 C5（MIDI：72 74 76 79 · 76 74 72 72）。中间含休止；下列所选音高取每个音符的中点，不代表整段准确率。</p><pre id="referenceNotes" style="white-space:pre-wrap;font-size:12px"></pre></details>
 <details id="rawTracks" class="panel timeline"><summary>查看原始六轨 · MIDI 音符与起音</summary><div class="eyebrow">SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。</small></details>
 <details id="acoustics" class="panel acoustics"><summary>原曲声学信息 · 能量与频谱重心</summary><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></details>
 <p class="hint" id="warnings"></p>
@@ -326,7 +328,7 @@ function draw(staticOnly=false){
  $('duration').textContent=result.duration.toFixed(1);$('centroid').textContent=Math.round(f.centroid);$('energy').textContent=f.rms>0?(20*Math.log10(f.rms)).toFixed(1):'−∞';
 }
 function setBusy(value){
- busy=value;for(const id of ['file','demo','sample','mode'])$(id).disabled=value;
+ busy=value;for(const id of ['file','demo','sample','mode','standardDemo','loadStandard'])$(id).disabled=value;
  $('save').disabled=$('png').disabled=value||!result;
  $('cancel').hidden=!value||$('mode').value==='quick';$('cancel').disabled=false;
  $('progress').hidden=!value;
@@ -342,6 +344,7 @@ async function request(path,options={}){
 }
 function resetTrack(){
  melodies={};
+ $('referencePanel').hidden=true;$('referenceNotes').textContent='';
  result=null;$('candidateControl').hidden=true;$('candidates').checked=false;$('audio').pause();$('audio').removeAttribute('src');$('audio').load();
  if(url){URL.revokeObjectURL(url);url=null}
  $('audioStatus').textContent='';$('warnings').textContent='';
@@ -351,6 +354,14 @@ function showResult(data){
  if(!data||!Number.isFinite(data.duration)||!Array.isArray(data.frames))throw Error('分析数据不完整，请重新预缓存');
  result=data;
  prepareMelodies();
+ $('referencePanel').hidden=!data.reference_melody;
+ if(data.reference_melody){
+  const path=selectMelody(data.tracks.piano.notes,data.duration,'piano');
+  $('referenceNotes').textContent=data.reference_melody.map(n=>{
+   const t=(n.start+n.end)/2,selected=path.find(s=>s.start<=t&&s.end>t)?.note?.pitch??'休止';
+   return `${n.start.toFixed(2)}–${n.end.toFixed(2)} 秒：预期 ${n.pitch} → 所选 ${selected} ${selected===n.pitch?'✓':'需检查'}`;
+  }).join('\n');
+ }
  $('candidateControl').hidden=!result.tracks||result.piano_solo||!Object.values(result.tracks).some(
   track=>track.note_candidates?.length||track.onset_candidates?.length);
  $('warnings').textContent=(result.warnings||[]).join(' ');
@@ -405,6 +416,23 @@ async function loadDefault(){
  }catch(error){$('audioStatus').textContent='默认曲目加载遇到问题，请在更多设置中查看。';$('status').textContent=(mediaReady?'六轨数据暂不可用，仍可尝试播放。':'无法载入默认曲目：')+error.message}
  finally{setBusy(false);draw()}
 }
+async function loadStandard(){
+ if(busy)return;
+ const id=$('standardDemo').value;
+ if(!['pure','louder-bass'].includes(id))return;
+ resetTrack();setBusy(true);$('cancel').hidden=true;
+ const name=id==='pure'?'标准示范 · 纯净单音旋律':'标准示范 · 旋律与更响的低音伴奏';
+ $('songName').textContent=name;$('status').textContent='正在载入标准示范…';
+ $('audio').src='/demos/'+id+'.wav?token='+encodeURIComponent(token);$('audio').load();
+ try{
+  showResult(await request('/demos/'+id+'.json'));
+  $('legend').textContent='正弦波标准示范 · 音符由 Basic Pitch 实际识别；展开标准答案查看对照。';
+  $('referencePanel').open=true;
+  $('status').textContent=name+' · 9 秒 · 点击播放；可展开标准答案与旋律对照';
+ }catch(error){$('status').textContent='标准示范数据加载失败：'+error.message}
+ finally{setBusy(false);draw()}
+}
+$('loadStandard').onclick=loadStandard;
 $('sample').onclick=loadDefault;
 $('file').onchange=e=>{if(e.target.files[0])load(e.target.files[0],e.target.files[0].name)};
 $('demo').onclick=()=>{

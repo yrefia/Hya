@@ -1,0 +1,324 @@
+{
+  "pure": {
+    "recognizedFrames": 72,
+    "totalFrames": 72,
+    "selectedCorrectFrames": 72,
+    "melodyAccuracy": 1,
+    "restAccuracy": 1,
+    "perNote": [
+      {
+        "expected": {
+          "start": 0.5,
+          "end": 1.2,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 0.4876190476190476,
+            "end": 1.195827664399093,
+            "pitch": 72,
+            "amplitude": 0.6139018535614014
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 1.4,
+          "end": 2.1,
+          "pitch": 74,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          74
+        ],
+        "detected": [
+          {
+            "start": 1.4048072562358276,
+            "end": 2.1026897959183675,
+            "pitch": 74,
+            "amplitude": 0.6195601224899292
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 2.3,
+          "end": 3,
+          "pitch": 76,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          76
+        ],
+        "detected": [
+          {
+            "start": 2.3000594104308387,
+            "end": 2.996658049886621,
+            "pitch": 76,
+            "amplitude": 0.6088055968284607
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 3.2,
+          "end": 3.9,
+          "pitch": 79,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          79
+        ],
+        "detected": [
+          {
+            "start": 3.194027664399093,
+            "end": 3.902236281179138,
+            "pitch": 79,
+            "amplitude": 0.6156195998191833
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 4.8,
+          "end": 5.5,
+          "pitch": 76,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          76
+        ],
+        "detected": [
+          {
+            "start": 4.79748843537415,
+            "end": 5.505697052154195,
+            "pitch": 76,
+            "amplitude": 0.6044412851333618
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 5.7,
+          "end": 6.4,
+          "pitch": 74,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          74
+        ],
+        "detected": [
+          {
+            "start": 5.7030666666666665,
+            "end": 6.400949206349207,
+            "pitch": 74,
+            "amplitude": 0.6153196096420288
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 6.6,
+          "end": 7.3,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 6.609928798185941,
+            "end": 7.306527437641724,
+            "pitch": 72,
+            "amplitude": 0.6125546097755432
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 7.5,
+          "end": 8.2,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 7.503897052154195,
+            "end": 8.190169614512472,
+            "pitch": 72,
+            "amplitude": 0.6145623326301575
+          }
+        ]
+      }
+    ]
+  },
+  "louder-bass": {
+    "recognizedFrames": 72,
+    "totalFrames": 72,
+    "selectedCorrectFrames": 72,
+    "melodyAccuracy": 1,
+    "restAccuracy": 1,
+    "perNote": [
+      {
+        "expected": {
+          "start": 0.5,
+          "end": 1.2,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 0.4992290249433107,
+            "end": 1.172607709750567,
+            "pitch": 72,
+            "amplitude": 0.47143957018852234
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 1.4,
+          "end": 2.1,
+          "pitch": 74,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          74
+        ],
+        "detected": [
+          {
+            "start": 1.3931972789115645,
+            "end": 2.067859863945578,
+            "pitch": 74,
+            "amplitude": 0.47767913341522217
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 2.3,
+          "end": 3,
+          "pitch": 76,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          76
+        ],
+        "detected": [
+          {
+            "start": 2.3000594104308387,
+            "end": 2.961828117913832,
+            "pitch": 76,
+            "amplitude": 0.463954895734787
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 3.2,
+          "end": 3.9,
+          "pitch": 79,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          79
+        ],
+        "detected": [
+          {
+            "start": 3.194027664399093,
+            "end": 3.8790163265306123,
+            "pitch": 79,
+            "amplitude": 0.47623369097709656
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 4.8,
+          "end": 5.5,
+          "pitch": 76,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          76
+        ],
+        "detected": [
+          {
+            "start": 4.79748843537415,
+            "end": 5.470867120181405,
+            "pitch": 76,
+            "amplitude": 0.4645156264305115
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 5.7,
+          "end": 6.4,
+          "pitch": 74,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          74
+        ],
+        "detected": [
+          {
+            "start": 5.7030666666666665,
+            "end": 6.366119274376417,
+            "pitch": 74,
+            "amplitude": 0.47872862219810486
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 6.6,
+          "end": 7.3,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 6.609928798185941,
+            "end": 7.271697505668935,
+            "pitch": 72,
+            "amplitude": 0.47473394870758057
+          }
+        ]
+      },
+      {
+        "expected": {
+          "start": 7.5,
+          "end": 8.2,
+          "pitch": 72,
+          "amplitude": 0.14
+        },
+        "selectedPitches": [
+          72
+        ],
+        "detected": [
+          {
+            "start": 7.503897052154195,
+            "end": 8.155339682539681,
+            "pitch": 72,
+            "amplitude": 0.476030170917511
+          }
+        ]
+      }
+    ]
+  }
+}

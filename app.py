@@ -119,6 +119,19 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, (ROOT / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
         elif parsed.path == '/assets/moonlit-lake.jpg':
             self.reply(200, (ROOT / 'assets' / 'moonlit-lake.jpg').read_bytes(), 'image/jpeg')
+        elif parsed.path in {f'/demos/{name}.{extension}'
+                             for name in ('pure', 'louder-bass') for extension in ('wav', 'json')}:
+            if not (self.authorized() or query_token):
+                self.json(403, {'error': '会话无效，请从启动地址重新打开。'})
+                return
+            path = ROOT / 'assets' / 'demos' / parsed.path.rsplit('/', 1)[1]
+            try:
+                if path.suffix == '.wav':
+                    self.media(path)
+                else:
+                    self.reply(200, path.read_bytes())
+            except OSError:
+                self.json(404, {'error': '标准示范文件缺失，请重新生成。'})
         elif parsed.path in ('/default', '/default/result', '/sample'):
             if not (self.authorized() or query_token):
                 self.json(403, {'error': '会话无效，请从启动地址重新打开。'})
