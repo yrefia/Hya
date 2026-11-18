@@ -15,7 +15,7 @@ import re
 from hya.audio_analysis import analyze
 from hya.jobs import JobManager
 from hya.default_audio import default_audio, default_piano_solo, playback_audio
-from hya import local_demos
+from hya import local_demos, rubia
 
 TOKEN = secrets.token_urlsafe(24)
 ROOT = Path(__file__).resolve().parent
@@ -127,7 +127,14 @@ class Handler(BaseHTTPRequestHandler):
             if parts[3] == 'audio':
                 self.media(local_demos.playback_path(source))
             else:
-                self.reply(200, self.server.jobs.cached_result(source, piano_solo=piano_solo))
+                background = self.server.jobs.cached_result(source, piano_solo=piano_solo)
+                if parts[2] == 'rubia':
+                    try:
+                        background = rubia.cache_path(self.server.jobs.cache, background).read_bytes()
+                    except FileNotFoundError:
+                        self.json(409, {'error': '请在电脑上运行 precache.py --rubia 生成前景分析。'})
+                        return
+                self.reply(200, background)
         except OSError:
             self.json(404, {'error': '演示曲目的本地文件缺失。'})
         except ValueError:

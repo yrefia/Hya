@@ -125,6 +125,7 @@ function selectMelody(input,duration,lane){
 }
 function prepareMelodies(){
  melodies={};
+ if(result.foreground)return;
  for(const lane of lanes){
   const track=result.tracks?.[lane.id];if(!track)continue;
   const notes=[...(track.notes||[])].sort((a,b)=>a.start-b.start);
@@ -185,9 +186,49 @@ function sceneGeometry(w,h,time){
  const left=32,right=w-24,pen=left+(right-left)*.88;
  return {left,right,pen,xAt:t=>pen+(t-time)*(pen-left)/10,yAt:p=>h*.92-(p-24)/72*h*.28};
 }
+function foregroundPitch(note, track, step, time){
+ const position=Math.max(0,(time-note.start)/step);
+ const index=Math.min(note.samples.length-1,Math.floor(position));
+ const next=Math.min(note.samples.length-1,index+1);
+ const pitch=note.samples[index]+(note.samples[next]-note.samples[index])*(position-index);
+ if(note.fromPitch==null||track.glide<=0)return pitch;
+ const blend=Math.min(1,(time-note.start)/track.glide);
+ return note.fromPitch+(pitch-note.fromPitch)*blend;
+}
+function drawForeground(c,lane,data,time,xAt,yAt,drumBase,height){
+ c.strokeStyle=c.fillStyle=lane.color;c.lineWidth=2;
+ const start=Math.max(0,time-10);
+ if(lane.id==='drums'){
+  c.globalAlpha=.6;c.font='11px sans-serif';c.textAlign='left';
+  c.fillText('鼓重音',xAt(time-10),drumBase);c.globalAlpha=1;
+  c.beginPath();
+  for(const hit of data.accents){
+   if(hit.t<start||hit.t>time)continue;
+   const x=xAt(hit.t);
+   c.moveTo(x,drumBase);c.lineTo(x,drumBase-3-height*.065*hit.strength);
+  }
+  c.stroke();return;
+ }
+ const track=data.tracks[lane.id];
+ for(const note of track.notes){
+  if(note.start>time)break;
+  if(note.end<=start)continue;
+  const first=Math.max(note.start,start),last=Math.min(time,note.end);
+  const y=at=>yAt(foregroundPitch(note,track,data.step,at));
+  c.beginPath();c.moveTo(xAt(first),y(first));
+  for(let i=Math.floor((first-note.start)/data.step)+1;i<note.samples.length;i++){
+   const at=note.start+i*data.step;
+   if(at>=last)break;
+   c.lineTo(xAt(at),y(at));
+  }
+  c.lineTo(xAt(last),y(last));c.stroke();
+  if(time<note.end){c.beginPath();c.arc(xAt(time),y(time),3,0,Math.PI*2);c.fill()}
+ }
+}
 function drawScene(){
  const [c,w,h]=setup($('scene')),t=$('audio').currentTime||0;
- const {left,right,pen,xAt,yAt}=sceneGeometry(w,h,t);
+ const {left,right,pen,xAt,yAt:baseY}=sceneGeometry(w,h,t);
+ const yAt=result?.foreground?p=>baseY(p)-h*.10:baseY;
  // Real FFT bins: no synthetic spectrum when audio is paused/unavailable.
  if($('spectrum').checked&&analyser&&spectrumBins&&!$('audio').paused&&!$('audio').seeking){
   analyser.getByteFrequencyData(spectrumBins);
@@ -222,6 +263,7 @@ function drawScene(){
  // One common fixed pen line; paths never advance beyond it.
  c.strokeStyle='#f0e6ff60';c.lineWidth=1;c.beginPath();c.moveTo(pen,h*.57);c.lineTo(pen,h*.96);c.stroke();
  for(const lane of visible){
+  if(result.foreground){drawForeground(c,lane,result.foreground,t,xAt,yAt,h*.935,h);continue}
   c.strokeStyle=lane.color;c.lineWidth=2;c.lineJoin='round';c.lineCap='round';c.shadowColor=lane.color;c.shadowBlur=8;
   c.beginPath();let connected=false;
   const first=Math.max(0,Math.ceil((t-10)/melodyStep));
@@ -358,9 +400,11 @@ function resetTrack(){
  $('audioStatus').textContent='';$('warnings').textContent='';
  for(const id of ['duration','centroid','energy'])$(id).textContent='—';
 }
+const defaultLimits=$('limits').textContent;
 function showResult(data){
  if(!data||!Number.isFinite(data.duration)||!Array.isArray(data.frames))throw Error('分析数据不完整，请重新预缓存');
  result=data;
+ $('limits').textContent=data.foreground?'Rubia · 前景线追踪分轨电平起音与音高，人声单线，乐器可同时显示多个音。底部竖线越长，鼓重音越强。淡色音符块来自 Basic Pitch。':defaultLimits;
  prepareMelodies();
  $('referencePanel').hidden=!data.reference_melody;
  if(data.reference_melody){

@@ -2,8 +2,10 @@
 import argparse
 from pathlib import Path
 import time
+import os
+import tempfile
 
-from hya import local_demos
+from hya import local_demos, rubia
 from hya.default_audio import default_audio, default_piano_solo, install_default, prepare_playback
 from hya.jobs import JobManager, TERMINAL
 
@@ -32,19 +34,32 @@ def main():
     parser.add_argument('audio', nargs='?', type=Path, help='省略时查找当前默认曲目或桌面 My heart will go on')
     parser.add_argument('--piano-solo', action='store_true', help='已确认是钢琴独奏，直接转写原曲')
     parser.add_argument('--demos', action='store_true', help='预缓存 inputs/ 中的演示曲目')
+    parser.add_argument('--rubia', action='store_true', help='只准备 Rubia 的播放和前景分析')
+    parser.add_argument('--stems', type=Path, help='与 Rubia 原曲同步的六轨 WAV 目录，省略则重新分轨')
     args = parser.parse_args()
+    if args.rubia and (args.demos or args.audio or args.piano_solo) or args.stems and not args.rubia:
+        parser.error('--rubia 可单独使用或搭配 --stems。')
     if args.demos and (args.audio or args.piano_solo):
         parser.error('--demos 按曲目配置分析，不能同时指定音频或 --piano-solo。')
     manager = JobManager()
     try:
-        if args.demos:
-            for filename, name, piano_solo in local_demos.TRACKS.values():
+        if args.demos or args.rubia:
+            for track_id, (filename, name, piano_solo) in local_demos.TRACKS.items():
+                if args.rubia and track_id != 'rubia':
+                    continue
                 source = local_demos.INPUT_DIR / filename
                 if not source.is_file():
                     raise SystemExit(f'缺少输入音频：{source}')
                 print(f'演示曲目：{name}', flush=True)
                 warm_cache(manager, source, piano_solo=piano_solo)
-                manager.cached_result(source, piano_solo=piano_solo)
+                background = manager.cached_result(source, piano_solo=piano_solo)
+                if track_id == 'rubia':
+                    destination = rubia.cache_path(manager.cache, background)
+                    if args.stems or not destination.exists():
+                        payload = rubia.build(background, source, args.stems)
+                        with tempfile.NamedTemporaryFile(dir=manager.cache, delete=False) as output:
+                            output.write(payload)
+                        os.replace(output.name, destination)
                 print(f'播放副本：{prepare_playback(source, local_demos.PLAYBACK_DIR)}', flush=True)
         else:
             source = args.audio or default_audio()[0]

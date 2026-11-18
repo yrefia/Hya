@@ -125,3 +125,11 @@ for test in tests/test_*.js; do node "$test" || exit 1; done
 复现完整验收：`.venv/bin/python -m tests.test_synthetic_melody`。生成音频，运行真实 Basic Pitch ONNX，再调用页面中的真实旋律选择函数；结果写入 `outputs/validation/simple-melody/`。加 `--publish` 会在验收通过后更新仓库标准示范文件。
 
 首次验收两段音频各有 72 个音符内部采样点，识别包含预期音高、旋律选择正确率均为 100%，休止采样正确率均为 100%。音符采样避开起音 150 ms 与结束前 120 ms，休止检查避开边界 150 ms；阈值为音高和休止正确率均不低于 95%。这不等于起止时间精确，也不是人类听感评测，更不能外推到真实钢琴、踏板延音或复杂复调。详细逐音数据见 `assets/demos/validation.json`。
+
+## Rubia 分轨前景
+
+在「更多设置 → 曲目」选择周深《Rubia》。淡色 MIDI 方块沿用 Basic Pitch，前景来自分轨电平和频谱。底部鼓轨的竖线表示瞬态强度处在本曲前 30% 的起音，竖线长度随强度变化。
+
+单独准备此曲可运行 `.venv/bin/python precache.py --rubia`。若已有由同一原曲导出、时间轴对齐的 44.1 kHz Demucs WAV，可运行 `.venv/bin/python precache.py --rubia --stems 'outputs/exports/htdemucs_6s/周深-Rubia/stems'`。显式提供分轨会重新生成前景。音频、分轨和缓存保存在本机。
+
+每 20 ms 比较短时 RMS 和频谱峰值。当电平回升或某音区能量增长时，折减前音基频及前六个谐波附近的残留能量，按十二平均律确定新音的 MIDI 音高。算法逐帧跟踪峰值相对该音高的偏移，保留持续至少三帧的音。钢琴最多六线，音内摆幅为 ±0.08 半音，换音直接跳转。人声一线、吉他最多四线，摆幅为 ±0.45 半音，相邻音在 60 ms 内衔接。其他声部最多五线、低音最多三线，摆幅为 ±0.9 半音，衔接时间为 100 ms。休止会断线。这些参数是本版本对 Rubia 的估计，真实录音的漏音、倍频误判和起止偏差仍需逐段校对。
