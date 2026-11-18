@@ -50,4 +50,4 @@ python3.11 -m venv .venv
 
 后台管线采用 Demucs CPU、`shifts=0`、`overlap=0.25`；Basic Pitch 使用默认音符检测参数。
 更改这些参数需修改 `ml_pipeline.py`，缓存键随文件内容变化而失效。
-分轨 WAV 仅为临时计算资源，不提供持久化播放或下载；MVP 仍播放原曲。
+常规界面分析中的分轨 WAV 是临时计算资源，界面播放原曲。独立归档的文件见[五首演示曲目的分轨与转写](audio-exports.md)。
