@@ -1,5 +1,5 @@
 """Opt-in end-to-end check with known sine-wave melody (requires audio .venv).
-Run: .venv/bin/python test_synthetic_melody.py
+Run: .venv/bin/python -m tests.test_synthetic_melody
 Artifacts: outputs/validation/simple-melody/ (audio, truth, predictions, report).
 """
 import argparse
@@ -11,7 +11,7 @@ import numpy as np
 import soundfile as sf
 from ml_pipeline import run_pipeline
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'outputs/validation/simple-melody'
 RATE = 44100
 DURATION = 9.0
@@ -46,7 +46,7 @@ def main():
     # Exercise the exact frontend selector, without reimplementing it in Python.
     script = r'''
 const fs=require('fs'),vm=require('vm');
-const folder=process.argv[1],source=fs.readFileSync('ui.html','utf8'),box={};vm.createContext(box);
+const folder=process.argv[1],source=fs.readFileSync('web/ui.html','utf8'),box={};vm.createContext(box);
 vm.runInContext(source.slice(source.indexOf('function selectMelody('),source.indexOf('function prepareMelodies(')),box);
 const truth=JSON.parse(fs.readFileSync(folder+'/truth.json'));
 const report={};

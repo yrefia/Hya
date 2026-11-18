@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 import app
-from jobs import JobManager, TERMINAL
+from hya.jobs import JobManager, TERMINAL
 
 
 WORKER = '''import json, pathlib, sys, time

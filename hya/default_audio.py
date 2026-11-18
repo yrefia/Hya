@@ -6,7 +6,7 @@ import re
 import shutil
 import subprocess
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DIR = ROOT / 'outputs' / 'default'
 AUDIO_EXTENSIONS = {'.wav', '.mp3', '.m4a', '.aiff', '.aif', '.flac', '.ogg', '.aac'}
 

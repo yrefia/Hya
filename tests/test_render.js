@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 let paths=[],rects=[],current=[];
 const ctx=new Proxy({beginPath(){current=[]},moveTo(x,y){current.push([x,y])},lineTo(x,y){current.push([x,y])},stroke(){paths.push(current)},fillRect(...args){rects.push(args)},arc(){},save(){},restore(){},rect(){},clip(){}},{get:(o,k)=>o[k]||(()=>{}),set:(o,k,v)=>(o[k]=v,true)});
 const elements={};const document={getElementById:id=>elements[id]||(elements[id]={checked:true,currentTime:6,paused:true,width:800,height:480,getBoundingClientRect:()=>({width:800,height:480}),getContext:()=>id==='scene'?new Proxy({},{get:()=>()=>{},set:()=>true}):ctx})};
-const box={window:{addEventListener(){}},document,location:{search:''},URLSearchParams,devicePixelRatio:1,matchMedia:()=>({matches:false}),requestAnimationFrame:()=>{}};vm.createContext(box);vm.runInContext(fs.readFileSync('ui.html','utf8').split('<script>')[1].split('</script>')[0],box);
+const box={window:{addEventListener(){}},document,location:{search:''},URLSearchParams,devicePixelRatio:1,matchMedia:()=>({matches:false}),requestAnimationFrame:()=>{}};vm.createContext(box);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../web/ui.html'),'utf8').split('<script>')[1].split('</script>')[0],box);
 const frames=Array.from({length:101},(_,i)=>({t:i/10,energy:.5,centroid:440,rms:.2,voices:[{pitch:60+i/100,confidence:1},{pitch:48,confidence:1}]}));
 vm.runInContext('result='+JSON.stringify({duration:10,rate:22050,frames})+';',box);
 function render(t,staticOnly=false){elements.audio.currentTime=t;paths=[];rects=[];vm.runInContext(`draw(${staticOnly})`,box);return {paths:paths.filter(p=>p.length>20).slice(0,2),notes:rects.filter(r=>r[3]===4)}}

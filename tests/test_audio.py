@@ -1,6 +1,6 @@
 import unittest, tempfile, wave, struct, math
 from pathlib import Path
-from audio_analysis import analyze, RATE
+from hya.audio_analysis import analyze, RATE
 class AnalysisTests(unittest.TestCase):
     def analyze_signal(self,freq):
         with tempfile.TemporaryDirectory() as d:
@@ -20,8 +20,8 @@ class AnalysisTests(unittest.TestCase):
 
 class MusicTests(unittest.TestCase):
     def test_polyphonic_tracking_and_silence(self):
-        from audio_analysis import WINDOW,fft
-        from music_features import voices
+        from hya.audio_analysis import WINDOW,fft
+        from hya.music_features import voices
         def spectrum(freqs):
             x=[sum(a*math.sin(2*math.pi*hz*i/RATE) for hz,a in freqs)*(.5-.5*math.cos(2*math.pi*i/(WINDOW-1))) for i in range(WINDOW)]
             return [abs(z)**2 for z in fft(x)[:WINDOW//2+1]]

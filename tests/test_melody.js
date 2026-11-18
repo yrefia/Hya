@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const source=fs.readFileSync('ui.html','utf8');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../web/ui.html'),'utf8');
 const box={};vm.createContext(box);
 vm.runInContext(source.slice(source.indexOf('function selectMelody('),source.indexOf('function prepareMelodies(')),box);
 const note=(start,end,pitch,amplitude=.3)=>({start,end,pitch,amplitude});

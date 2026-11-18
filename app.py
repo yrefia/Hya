@@ -12,9 +12,9 @@ import urllib.parse
 import mimetypes
 import gzip
 import re
-from audio_analysis import analyze
-from jobs import JobManager
-from default_audio import default_audio, default_piano_solo, playback_audio
+from hya.audio_analysis import analyze
+from hya.jobs import JobManager
+from hya.default_audio import default_audio, default_piano_solo, playback_audio
 
 TOKEN = secrets.token_urlsafe(24)
 ROOT = Path(__file__).resolve().parent
@@ -116,7 +116,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         query_token = urllib.parse.parse_qs(parsed.query).get('token') == [TOKEN]
         if parsed.path == '/' and query_token:
-            self.reply(200, (ROOT / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
+            self.reply(200, (ROOT / 'web' / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
         elif parsed.path == '/assets/moonlit-lake.jpg':
             self.reply(200, (ROOT / 'assets' / 'moonlit-lake.jpg').read_bytes(), 'image/jpeg')
         elif parsed.path in {f'/demos/{name}.{extension}'

@@ -3,8 +3,8 @@ import argparse
 from pathlib import Path
 import time
 
-from default_audio import default_audio, default_piano_solo, install_default
-from jobs import JobManager, TERMINAL
+from hya.default_audio import default_audio, default_piano_solo, install_default
+from hya.jobs import JobManager, TERMINAL
 
 
 def main():

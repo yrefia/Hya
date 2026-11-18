@@ -1,6 +1,7 @@
 // Exercise the real browser script with controlled network responses.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const source=fs.readFileSync('ui.html','utf8').split('<script>')[1].split('</script>')[0];
+const path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../web/ui.html'),'utf8').split('<script>')[1].split('</script>')[0];
 function harness(responses){
  const requests=[],downloads=[],elements={},listeners={};
  const ctx=new Proxy({},{get:()=>()=>{},set:()=>true});
@@ -42,7 +43,7 @@ const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centro
  await h.run("load(new Blob(['audio']), 'large.flac')");assert.match(h.elements.status.textContent,/拒绝了过大的音频上传/);
  h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}}]);await h.listeners.DOMContentLoaded();assert.match(h.elements.status.textContent,/默认曲目不存在/);assert.equal(h.elements.file.disabled,false);
  // Standard fixtures use real cached transcription, never upload or synthetic truth as predictions.
- const fixture=JSON.parse(fs.readFileSync('assets/demos/pure.json','utf8'));
+ const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/demos/pure.json'),'utf8'));
  h=harness([fixture]);h.run("$('standardDemo').value='pure'");
  await h.run('loadStandard()');
  assert.deepEqual(h.requests.map(r=>r.path),['/demos/pure.json']);

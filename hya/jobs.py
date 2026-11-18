@@ -12,7 +12,7 @@ import threading
 import time
 from ml_pipeline import VERSION, STEMS, PITCHED
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 TERMINAL = {'done', 'error', 'cancelled'}
 
 

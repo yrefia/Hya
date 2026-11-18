@@ -14,7 +14,7 @@ python3 app.py
 浏览器自动打开带会话 token 的本机地址，并自动加载默认曲目。本机默认曲目为林海《远方的寂静》，音频副本和配置保存在 `outputs/default/`。完成下述预缓存后，打开即可复用分析结果，点击播放开始观察。也可导入其他音频或点击「体验示例声音」，等待分析完成后播放。示例是合成旋律与和弦，没有真实人声，不适合评估人声分离准确率。关闭终端或 Control+C 停止服务，并取消后台任务。
 
 - 上限：128 MB、10 分钟；模型任务最长运行 30 分钟。
-- 默认「分轨分析」使用项目 `.venv/bin/python`，环境与模型准备见 [AUDIO_TOOLS.md](AUDIO_TOOLS.md)。现有机器已准备好模型，不需要账号或联网推理。
+- 默认「分轨分析」使用项目 `.venv/bin/python`，环境与模型准备见 [音频工具说明](docs/AUDIO_TOOLS.md)。现有机器已准备好模型，不需要账号或联网推理。
 - 「快速音高估计」调用 macOS `afconvert` + 标准库 FFT，不做分轨。
 - 播放器播放原始文件；系统能解码的格式不一定能被浏览器播放，必要时先转换成 WAV / MP3。
 - 默认曲目覆盖：`HYA_DEFAULT_AUDIO='/absolute/path/song.flac' python3 app.py`。
@@ -56,25 +56,27 @@ python3 app.py
 - 任务接口均要求 `X-Hya-Token`。`/analyze` 保留快速分析接口。
 - 一次运行一个模型任务，最多四个未完成任务。任务状态仅在当前进程内保存，最多保留 32 条；重启后重新导入可复用磁盘缓存。
 - 默认曲目副本持久保存在 `outputs/default/`。其他原始上传和中间音频只存在任务临时目录，完成、失败或取消后清理。分析 JSON 保存在 `outputs/cache/`，包含音符与声学信息；退出后仍保留。需要清理时可删除此目录，下次重新分析。
-- `.venv`、`.models`、音频与 `outputs` 均不提交 Git。
+- 本机手动导入的音频原件可放在 `inputs/`，然后在页面选择文件。`inputs/`、`outputs/`、`.venv/` 和 `.models/` 均不提交 Git。
 
-## 代码结构
+## 项目结构
 
-| 文件 | 职责 |
+| 路径 | 职责 |
 |---|---|
-| `default_audio.py` / `precache.py` | 默认曲目发现、复制、预缓存及复用验证 |
-| `app.py` | 本机 HTTP 路由、会话校验、快速分析入口 |
-| `jobs.py` | 有界队列、子进程、进度、取消、超时、缓存 |
-| `ml_pipeline.py` | 解码、分轨、转写、声学特征和鼓点 |
-| `audio_analysis.py` / `music_features.py` | 旧版快速 FFT 和音高候选算法 |
-| `ui.html` | 播放、音符/鼓点绘制、任务状态与导出 |
+| `启动 Hya.command` / `app.py` | macOS 启动脚本和本机 HTTP 服务入口 |
+| `precache.py` / `ml_pipeline.py` | 默认曲目预缓存命令和分轨分析工作进程入口 |
+| `hya/` | 默认曲目管理、后台任务和快速音高估计 |
+| `web/ui.html` | 播放、可视化、任务状态与导出 |
+| `assets/` | 随仓库分发的背景与标准示范音频 |
+| `tests/` | Python 回归、前端回归和可选的真实模型验收 |
+| `docs/` | 音频工具说明、处理流程和历史验收截图 |
+| `inputs/` | 本机导入的音频原件 |
+| `outputs/` | 默认曲目副本、分析缓存、分轨和验收产物 |
 
 ## 验证
 
 ```sh
-.venv/bin/python -m unittest -v test_audio test_ml_pipeline test_jobs test_default_audio
-node test_render.js
-node test_ui.js
+.venv/bin/python -m unittest discover -v
+for test in tests/test_*.js; do node "$test" || exit 1; done
 ```
 
 自动化检查信号、反相立体声、音符边界、鼓点时刻，以及任务鉴权、缓存、取消、失败/超时、绘图历史稳定性和界面状态恢复。
@@ -97,9 +99,9 @@ node test_ui.js
 
 背景紫青光柱由 Web Audio AnalyserNode 的真实 FFT 频率数据驱动，横向为低频到高频。首次点击播放时初始化，同一个播放器只连接一次；暂停时不绘制频谱，不支持 Web Audio 时保留播放和已有分析。背景素材为用户提供的 `assets/moonlit-lake.jpg`，不依赖外部图床。
 
-补充前端验证：`node test_scene.js`（固定笔尖、共用音高坐标、六层叠加、暂停/跳转一致性、静音断线与独奏）。
+补充前端验证：`node tests/test_scene.js`（固定笔尖、共用音高坐标、六层叠加、暂停/跳转一致性、静音断线与独奏）。
 
-旋律选择回归：`node test_melody.js`。人工校准可先选 10–20 秒，记录每个主旋律音的起止秒数与 MIDI 音高（如 C4=60），休止明确标为空；用原始音符图核对，分别记录漏音和选错声部，避免用整曲听感代替逐段对照。
+旋律选择回归：`node tests/test_melody.js`。人工校准可先选 10–20 秒，记录每个主旋律音的起止秒数与 MIDI 音高（如 C4=60），休止明确标为空；用原始音符图核对，分别记录漏音和选错声部，避免用整曲听感代替逐段对照。
 
 ## 标准示范曲目与已知答案验收
 
@@ -110,6 +112,6 @@ node test_ui.js
 
 原有默认钢琴曲与自由合成体验保留。标准示范的 WAV 和 Basic Pitch 实际输出随仓库保存在 `assets/demos/`，无需下载模型、上传或重新分析即可播放。参考旋律来自音频生成配方，独立存放于 `reference_melody`，不作为识别结果输入；页面列出起止秒数、预期 MIDI 音高和所选路径在音符中点的音高。
 
-复现完整验收：`.venv/bin/python test_synthetic_melody.py`。生成音频，运行真实 Basic Pitch ONNX，再调用页面中的真实旋律选择函数；结果写入 `outputs/validation/simple-melody/`。加 `--publish` 会在验收通过后更新仓库标准示范文件。
+复现完整验收：`.venv/bin/python -m tests.test_synthetic_melody`。生成音频，运行真实 Basic Pitch ONNX，再调用页面中的真实旋律选择函数；结果写入 `outputs/validation/simple-melody/`。加 `--publish` 会在验收通过后更新仓库标准示范文件。
 
 首次验收两段音频各有 72 个音符内部采样点，识别包含预期音高、旋律选择正确率均为 100%，休止采样正确率均为 100%。音符采样避开起音 150 ms 与结束前 120 ms，休止检查避开边界 150 ms；阈值为音高和休止正确率均不低于 95%。这不等于起止时间精确，也不是人类听感评测，更不能外推到真实钢琴、踏板延音或复杂复调。详细逐音数据见 `assets/demos/validation.json`。

@@ -1,5 +1,5 @@
 import math, cmath, wave, struct
-from music_features import voices
+from .music_features import voices
 
 RATE, WINDOW, HOP = 22050, 4096, 1024
 VERSION = 'hya-python-3'

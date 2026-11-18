@@ -5,7 +5,7 @@ const ctx=new Proxy({beginPath(){path=[]},moveTo(x,y){path.push([x,y])},lineTo(x
 const dummy=new Proxy({},{get:()=>()=>{},set:()=>true}),elements={};
 const document={getElementById:id=>elements[id]||(elements[id]={checked:true,currentTime:0,paused:true,getBoundingClientRect:()=>({width:1000,height:600}),getContext:()=>id==='scene'?ctx:dummy})};
 const box={window:{addEventListener(){}},document,location:{search:''},URLSearchParams,devicePixelRatio:1,matchMedia:()=>({matches:false}),requestAnimationFrame(){},Uint8Array};
-vm.createContext(box);vm.runInContext(fs.readFileSync('ui.html','utf8').split('<script>')[1].split('</script>')[0],box);
+vm.createContext(box);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../web/ui.html'),'utf8').split('<script>')[1].split('</script>')[0],box);
 const run=code=>vm.runInContext(code,box);
 const notes=[{start:0,end:1,pitch:60,amplitude:.8},{start:1,end:3,pitch:72,amplitude:.8},{start:0,end:3,pitch:40,amplitude:.2}];
 const tracks={vocals:{notes},piano:{notes},bass:{notes:[{start:0,end:3,pitch:36,amplitude:.8}]},guitar:{notes:[{start:0,end:3,pitch:67,amplitude:.8}]},drums:{onsets:[{t:1.4,strength:.8}]},other:{frames:[{t:0,energy:.5},{t:3,energy:.5}]}};

@@ -7,7 +7,7 @@ import unittest
 import wave
 from unittest.mock import patch
 
-import default_audio as defaults
+from hya import default_audio as defaults
 
 
 class DefaultAudioTests(unittest.TestCase):
