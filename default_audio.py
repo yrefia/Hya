@@ -33,7 +33,15 @@ def default_audio():
     raise FileNotFoundError('未找到默认曲目 My heart will go on，请放到桌面或导入音频。')
 
 
-def install_default(source):
+def default_piano_solo(source):
+    manifest = DEFAULT_DIR / 'track.json'
+    if os.environ.get('HYA_DEFAULT_AUDIO') or os.environ.get('HYA_TEST_AUDIO') or not manifest.is_file():
+        return False
+    data = json.loads(manifest.read_text())
+    return Path(source) == DEFAULT_DIR / Path(data['file']).name and data.get('piano_solo') is True
+
+
+def install_default(source, *, piano_solo=False):
     source = Path(source).expanduser().resolve(strict=True)
     DEFAULT_DIR.mkdir(parents=True, exist_ok=True)
     target = DEFAULT_DIR / source.name
@@ -42,6 +50,8 @@ def install_default(source):
         shutil.copyfile(source, temporary)
         temporary.replace(target)
     data = {'file': target.name, 'name': source.stem}
+    if piano_solo:
+        data['piano_solo'] = True
     if source.suffix.lower() not in {'.mp3', '.m4a'}:
         playback = DEFAULT_DIR / (source.stem + '.playback.m4a')
         temporary = playback.with_suffix('.tmp.m4a')

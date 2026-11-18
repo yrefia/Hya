@@ -55,9 +55,15 @@ class JobManager:
             job = self.jobs[job_id]
             return {key: job[key] for key in ('id', 'state', 'stage', 'progress', 'message', 'cached', 'error') if key in job}
 
-    def cached_result(self, source):
-        """Read a prepared result without queueing work or uploading audio."""
+    def cache_digest(self, piano_solo):
         digest = hashlib.sha256(self.signature)
+        if piano_solo:
+            digest.update(b'piano-solo\0')
+        return digest
+
+    def cached_result(self, source, *, piano_solo=False):
+        """Read a prepared result without queueing work or uploading audio."""
+        digest = self.cache_digest(piano_solo)
         with Path(source).open('rb') as audio:
             for chunk in iter(lambda: audio.read(1024 * 1024), b''):
                 digest.update(chunk)
@@ -70,8 +76,9 @@ class JobManager:
             pass
         raise ValueError('默认曲目的六轨缓存缺失或已过期，请在电脑上运行 precache.py；音频仍可播放。')
 
-    def submit(self, body):
-        digest = hashlib.sha256(self.signature + body).hexdigest()
+    def submit(self, body, *, piano_solo=False):
+        digest = self.cache_digest(piano_solo)
+        digest.update(body)
         with self.lock:
             if self.closed:
                 raise ValueError('服务正在关闭。')
@@ -84,7 +91,7 @@ class JobManager:
                     del self.jobs[key]
             job_id = secrets.token_hex(16)
             self.cache.mkdir(parents=True, exist_ok=True)
-            result = self.cache / (digest + '.json')
+            result = self.cache / (digest.hexdigest() + '.json')
             valid = False
             if result.exists():
                 try:
@@ -94,7 +101,7 @@ class JobManager:
                     pass
             job = dict(id=job_id, state='done' if valid else 'queued', stage='done' if valid else 'queued',
                        progress=1 if valid else 0, message='已载入缓存' if valid else '等待分析', cached=valid,
-                       result=result, cancel=threading.Event(), process=None)
+                       result=result, cancel=threading.Event(), process=None, piano_solo=piano_solo)
             self.jobs[job_id] = job
             if not valid:
                 folder = tempfile.TemporaryDirectory(prefix='hya-job-')
@@ -144,7 +151,10 @@ class JobManager:
                        NUMBA_CACHE_DIR=str(folder / 'numba'), MPLCONFIGDIR=str(folder / 'matplotlib'))
             output = folder / 'result.json'
             with (folder / 'worker.log').open('w+') as log:
-                process = subprocess.Popen(self.command + [str(folder / 'input'), str(output)],
+                arguments = [str(folder / 'input'), str(output)]
+                if job['piano_solo']:
+                    arguments.append('--piano-solo')
+                process = subprocess.Popen(self.command + arguments,
                                            stdout=log, stderr=subprocess.STDOUT, cwd=self.root,
                                            env=env, start_new_session=True)
                 job['process'] = process

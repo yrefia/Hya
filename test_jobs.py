@@ -27,7 +27,7 @@ if mode == "fail":
 if mode == "invalid":
     output.write_text("{}")
 else:
-    output.write_text(json.dumps(dict(version="hya-ml-2", duration=1.0, tracks={name: dict(frames=[], notes=[], onsets=[]) for name in ("vocals", "bass", "piano", "guitar", "drums", "other")}, frames=[])))
+    output.write_text(json.dumps(dict(version="hya-ml-3", duration=1.0, tracks={name: dict(frames=[], notes=[], onsets=[]) for name in ("vocals", "bass", "piano", "guitar", "drums", "other")}, frames=[])))
 '''
 
 
@@ -106,7 +106,7 @@ class JobTests(JobFixture, unittest.TestCase):
         first = self.manager.submit(b'ok')
         self.terminal(first)
         cache = self.manager.jobs[first['id']]['result']
-        cache.write_text(json.dumps(dict(version='hya-ml-2', duration=1, tracks={})))
+        cache.write_text(json.dumps(dict(version='hya-ml-3', duration=1, tracks={})))
         second = self.manager.submit(b'ok')
         self.assertFalse(second['cached'])
         self.assertEqual(self.terminal(second)['state'], 'done')
@@ -208,7 +208,7 @@ class HTTPTests(JobFixture, unittest.TestCase):
         self.assertEqual(self.terminal(success)['state'], 'done')
         code, result = self.request('GET', '/jobs/' + success['id'] + '/result')
         self.assertEqual(code, 200)
-        self.assertEqual(result['version'], 'hya-ml-2')
+        self.assertEqual(result['version'], 'hya-ml-3')
         self.assertTrue(self.request('POST', '/jobs', b'ok')[1]['cached'])
 
     def test_default_metadata_audio_and_missing_file(self):

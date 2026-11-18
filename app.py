@@ -14,7 +14,7 @@ import gzip
 import re
 from audio_analysis import analyze
 from jobs import JobManager
-from default_audio import default_audio, playback_audio
+from default_audio import default_audio, default_piano_solo, playback_audio
 
 TOKEN = secrets.token_urlsafe(24)
 ROOT = Path(__file__).resolve().parent
@@ -129,7 +129,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.json(200, {'name': name, 'playback': playback_audio() != sample})
                 elif parsed.path == '/default/result':
                     try:
-                        self.reply(200, self.server.jobs.cached_result(sample))
+                        self.reply(200, self.server.jobs.cached_result(sample, piano_solo=default_piano_solo(sample)))
                     except ValueError as exc:
                         self.json(409, {'error': str(exc)})
                 else:
