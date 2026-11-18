@@ -15,6 +15,7 @@ import re
 from hya.audio_analysis import analyze
 from hya.jobs import JobManager
 from hya.default_audio import default_audio, default_piano_solo, playback_audio
+from hya import local_demos
 
 TOKEN = secrets.token_urlsafe(24)
 ROOT = Path(__file__).resolve().parent
@@ -109,6 +110,29 @@ class Handler(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
+    def local_demo(self, path):
+        if path == '/demo-tracks':
+            self.json(200, local_demos.available_tracks())
+            return
+        parts = path.split('/')
+        if len(parts) != 4 or parts[2] not in local_demos.TRACKS or parts[3] not in ('audio', 'result'):
+            self.json(404, {'error': '演示曲目不存在。'})
+            return
+        filename, _, piano_solo = local_demos.TRACKS[parts[2]]
+        source = local_demos.INPUT_DIR / filename
+        if not source.is_file():
+            self.json(404, {'error': '本机演示曲目的原始音频缺失。'})
+            return
+        try:
+            if parts[3] == 'audio':
+                self.media(local_demos.playback_path(source))
+            else:
+                self.reply(200, self.server.jobs.cached_result(source, piano_solo=piano_solo))
+        except OSError:
+            self.json(404, {'error': '演示曲目的本地文件缺失。'})
+        except ValueError:
+            self.json(409, {'error': '演示曲目的缓存缺失或已过期，请在电脑上运行 precache.py --demos。'})
+
     def do_HEAD(self):
         self.do_GET()
 
@@ -119,6 +143,11 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, (ROOT / 'web' / 'ui.html').read_bytes(), 'text/html; charset=utf-8')
         elif parsed.path == '/assets/moonlit-lake.jpg':
             self.reply(200, (ROOT / 'assets' / 'moonlit-lake.jpg').read_bytes(), 'image/jpeg')
+        elif parsed.path == '/demo-tracks' or parsed.path.startswith('/demo-tracks/'):
+            if not (self.authorized() or query_token):
+                self.json(403, {'error': '会话无效，请从启动地址重新打开。'})
+                return
+            self.local_demo(parsed.path)
         elif parsed.path in {f'/demos/{name}.{extension}'
                              for name in ('pure', 'louder-bass') for extension in ('wav', 'json')}:
             if not (self.authorized() or query_token):

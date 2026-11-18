@@ -25,6 +25,7 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 @media(max-width:760px){body{background-position:68% center}.masthead{top:24px;left:7%;right:6%;align-items:flex-start;gap:18px;flex-wrap:wrap}.brand{gap:15px;font-size:19px}.brand h1{font-size:13px;letter-spacing:3px}.song-pill{max-width:100%;font-size:12px;padding:6px 12px;margin-left:auto}.scene-panel{inset:100px 0 155px}#scene{height:100%}.listening{left:6%;right:6%;bottom:26px}.stem-legend{gap:12px 18px;font-size:11px;margin-bottom:24px;letter-spacing:1px}.transport{gap:12px;flex-wrap:wrap}.play-toggle{width:42px;height:42px}#playTime{font-size:11px}#seek{order:4;flex-basis:100%;margin-top:8px}.more{margin-left:auto}.tools-panel{right:16px;bottom:100px;padding:16px}.brand-divider{font-size:14px}}
 
 #seek{appearance:none;-webkit-appearance:none;border:0;border-radius:4px;background:linear-gradient(to right,#d5b3ee var(--played,0%),#8c829f70 var(--played,0%));height:4px}#seek::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:12px;height:12px;background:#e5c9fa;border-radius:50%;box-shadow:0 0 12px #d5a9ffb0}#seek::-moz-range-thumb{width:12px;height:12px;border:0;background:#e5c9fa;border-radius:50%}
+#trackChoice{min-width:0;max-width:calc(100% - 3em);text-overflow:ellipsis}
 </style>
 <main>
 <header class="masthead"><div class="brand"><span class="crescent" aria-hidden="true"></span><span>H Y A</span><span class="brand-divider">|</span><h1>月下听见旋律</h1></div><div class="song-pill">♫ <span id="songName">等待载入曲目</span></div></header>
@@ -42,7 +43,7 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <label class="mode">曲目<select id="trackChoice">
 <option value="" selected disabled>选择曲目…</option>
 <option value="default">默认曲目</option>
-<option value="synthetic">自由合成体验</option>
+<optgroup id="localDemos" label="本机演示曲目" hidden></optgroup>
 <optgroup label="标准示范">
 <option value="pure">纯净单音旋律</option>
 <option value="louder-bass">旋律与更响的低音伴奏</option>
@@ -409,18 +410,21 @@ async function load(blob,name,playbackBlob=blob){
 }
 $('cancel').onclick=()=>{cancelRequested=true;$('cancel').disabled=true;$('status').textContent='正在取消分析…'};
 $('mode').onchange=()=>{$('modeHint').textContent=$('mode').value==='ml'?'默认曲目自动加载；已缓存的分析可直接复用。新曲目先在本机完成六轨分析。':'快速模式直接分析混合音频，不进行分轨；较响的伴奏可能取代旋律。';};
-async function loadDefault(){
+async function loadCachedTrack(demo){
  if(busy)return;resetTrack();setBusy(true);$('cancel').hidden=true;
- $('status').textContent='正在读取默认曲目…';$('progress').removeAttribute('value');draw();
+ const kind=demo?'演示曲目':'默认曲目';
+ const base=demo?'/demo-tracks/'+encodeURIComponent(demo.id):'/default';
+ $('status').textContent='正在读取'+kind+'…';$('progress').removeAttribute('value');draw();
  let mediaReady=false;
  try{
-  const info=await request('/default');$('songName').textContent=info.name;
-  $('audio').src='/sample?playback=1&token='+encodeURIComponent(token);$('audio').load();mediaReady=true;
-  $('mode').value='ml';$('mode').onchange();
-  $('status').textContent=`${info.name} · 可点击播放 · 正在读取六轨缓存…`;
-  showResult(await request('/default/result'));
-  $('status').textContent=`${info.name} · 已复用缓存 · ${result.duration.toFixed(1)} 秒 · 点击播放`;
- }catch(error){$('audioStatus').textContent='默认曲目加载遇到问题，请在更多设置中查看。';$('status').textContent=(mediaReady?'六轨数据暂不可用，仍可尝试播放。':'无法载入默认曲目：')+error.message}
+  const {name}=demo||await request('/default');$('songName').textContent=name;
+  const audioUrl=demo?base+'/audio?':'/sample?playback=1&';
+  $('audio').src=audioUrl+'token='+encodeURIComponent(token);$('audio').load();mediaReady=true;
+  if(!demo){$('mode').value='ml';$('mode').onchange()}
+  $('status').textContent=`${name} · 可点击播放 · 正在读取分析缓存…`;
+  showResult(await request(base+'/result'));
+  $('status').textContent=`${name} · 已复用缓存 · ${result.duration.toFixed(1)} 秒 · 点击播放`;
+ }catch(error){$('audioStatus').textContent=kind+'加载遇到问题，请在更多设置中查看。';$('status').textContent=(mediaReady?'分析数据暂不可用，仍可尝试播放。':'无法载入'+kind+'：')+error.message}
  finally{setBusy(false);draw()}
 }
 async function loadStandard(id){
@@ -440,19 +444,20 @@ async function loadStandard(id){
 }
 $('trackChoice').onchange=event=>{
  const choice=event.target.value;
+ const name=event.target.selectedOptions[0]?.textContent;
  event.target.value='';
  if(!choice||busy)return;
- if(choice==='default')return loadDefault();
- if(choice==='synthetic')return loadSynthetic();
+ if(choice==='default')return loadCachedTrack();
+ if(choice.startsWith('local:'))return loadCachedTrack({id:choice.slice(6),name});
  return loadStandard(choice);
 };
 $('file').onchange=e=>{if(e.target.files[0])load(e.target.files[0],e.target.files[0].name)};
-function loadSynthetic(){
- let rate=22050,n=rate*9,b=new ArrayBuffer(44+n*2),v=new DataView(b);
- function str(o,s){[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)))}
- str(0,'RIFF');v.setUint32(4,36+n*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);
- for(let i=0;i<n;i++){let t=i/rate,f=[523.25,587.33,659.25,783.99,659.25,587.33][Math.floor(t/.75)%6],a=(.12+.22*(.5+.5*Math.sin(2*Math.PI*1.5*t)))*Math.min(1,t*10,(9-t)*10);v.setInt16(44+i*2,Math.round(32767*(a*Math.sin(2*Math.PI*f*t)+.06*Math.sin(2*Math.PI*130.81*t)+.05*Math.sin(2*Math.PI*164.81*t)+.04*Math.sin(2*Math.PI*196*t))*Math.min(1,t*10,(9-t)*10)),true)}
- return load(new Blob([b],{type:'audio/wav'}),'合成示例 · 旋律与 C 大三和弦');
+async function refreshLocalDemos(){
+ try{
+  const tracks=await request('/demo-tracks'),group=$('localDemos');
+  group.replaceChildren(...tracks.map(track=>new Option(track.name,'local:'+track.id)));
+  group.hidden=!tracks.length;
+ }catch{/* The default and standard demos remain available. */}
 }
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('save').onclick=()=>{if(result)download(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),'hya-analysis.json')};
@@ -469,9 +474,13 @@ function updateTransport(){
 }
 $('playToggle').onclick=async()=>{try{await enableSpectrum();if($('audio').paused)await $('audio').play();else $('audio').pause()}catch(error){$('audioStatus').textContent='暂时无法播放，请载入曲目后重试。'}};
 $('seek').oninput=()=>{if(Number.isFinite($('audio').duration))$('audio').currentTime=Number($('seek').value)};
-$('more').onclick=()=>{$('toolsPanel').hidden=!$('toolsPanel').hidden;$('more').ariaExpanded=String(!$('toolsPanel').hidden)};
+$('more').onclick=()=>{
+ const panel=$('toolsPanel');
+ panel.hidden=!panel.hidden;$('more').ariaExpanded=String(!panel.hidden);
+ if(!panel.hidden)return refreshLocalDemos();
+};
 $('closeTools').onclick=()=>{$('toolsPanel').hidden=true;$('more').ariaExpanded='false'};
 function loop(){draw();requestAnimationFrame(loop)}loop();
-window.addEventListener('DOMContentLoaded',loadDefault,{once:true});
+window.addEventListener('DOMContentLoaded',()=>loadCachedTrack(),{once:true});
 </script>
 </html>

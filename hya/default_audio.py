@@ -41,6 +41,24 @@ def default_piano_solo(source):
     return Path(source) == DEFAULT_DIR / Path(data['file']).name and data.get('piano_solo') is True
 
 
+def prepare_playback(source, directory):
+    """Create a seekable AAC playback copy for browsers that cannot play the source."""
+    if source.suffix.lower() in {'.mp3', '.m4a'}:
+        return source
+    directory.mkdir(parents=True, exist_ok=True)
+    playback = directory / (source.stem + '.playback.m4a')
+    temporary = playback.with_suffix('.tmp.m4a')
+    try:
+        subprocess.run([str(ROOT / '.venv/bin/ffmpeg'), '-nostdin', '-hide_banner', '-loglevel', 'error',
+                        '-y', '-i', str(source), '-map', '0:a:0', '-ac', '2', '-ar', '44100',
+                        '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', str(temporary)],
+                       check=True, capture_output=True, timeout=90)
+        temporary.replace(playback)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return playback
+
+
 def install_default(source, *, piano_solo=False):
     source = Path(source).expanduser().resolve(strict=True)
     DEFAULT_DIR.mkdir(parents=True, exist_ok=True)
@@ -52,17 +70,8 @@ def install_default(source, *, piano_solo=False):
     data = {'file': target.name, 'name': source.stem}
     if piano_solo:
         data['piano_solo'] = True
-    if source.suffix.lower() not in {'.mp3', '.m4a'}:
-        playback = DEFAULT_DIR / (source.stem + '.playback.m4a')
-        temporary = playback.with_suffix('.tmp.m4a')
-        try:
-            subprocess.run([str(ROOT / '.venv/bin/ffmpeg'), '-nostdin', '-hide_banner', '-loglevel', 'error',
-                            '-y', '-i', str(target), '-map', '0:a:0', '-ac', '2', '-ar', '44100',
-                            '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', str(temporary)],
-                           check=True, capture_output=True, timeout=90)
-            temporary.replace(playback)
-        finally:
-            temporary.unlink(missing_ok=True)
+    playback = prepare_playback(target, DEFAULT_DIR)
+    if playback != target:
         data['playback'] = playback.name
     temporary = DEFAULT_DIR / 'track.json.tmp'
     temporary.write_text(json.dumps(data, ensure_ascii=False))

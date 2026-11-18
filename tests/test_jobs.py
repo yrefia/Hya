@@ -16,7 +16,7 @@ from hya.jobs import JobManager, TERMINAL
 
 
 WORKER = '''import json, pathlib, sys, time
-source, output = map(pathlib.Path, sys.argv[1:])
+source, output = map(pathlib.Path, sys.argv[1:3])
 mode = source.read_text()
 print(json.dumps(dict(stage="separating", message="working", progress=.25)), flush=True)
 if mode == "wait":
@@ -216,6 +216,28 @@ class HTTPTests(JobFixture, unittest.TestCase):
         for method, path in (('GET', '/jobs/missing'), ('DELETE', '/jobs/missing'),
                              ('POST', '/unknown'), ('GET', '/jobs/id/unknown')):
             self.assertEqual(self.request(method, path)[0], 404)
+
+    def test_local_demo_lists_prepared_audio_and_reads_cache_without_submitting(self):
+        source = self.root / 'example.flac'
+        source.write_bytes(b'ok')
+        playback = self.root / 'example.playback.m4a'
+        track = {'example': (source.name, '示例曲目', True)}
+        job = self.manager.submit(source.read_bytes(), piano_solo=True)
+        self.assertEqual(self.terminal(job)['state'], 'done')
+        with patch.multiple(app.local_demos, INPUT_DIR=self.root, PLAYBACK_DIR=self.root, TRACKS=track), \
+                patch.object(self.manager, 'submit', side_effect=AssertionError('must not submit')):
+            self.assertEqual(self.request('GET', '/demo-tracks'), (200, []))
+            playback.write_bytes(b'0123456789')
+            self.assertEqual(self.request('GET', '/demo-tracks'), (200, [{'id': 'example', 'name': '示例曲目'}]))
+            for path in ('/demo-tracks', '/demo-tracks/example/result', '/demo-tracks/example/audio'):
+                self.assertEqual(self.request('GET', path, authorized=False)[0], 403)
+            self.assertEqual(self.request('GET', '/demo-tracks/unknown/audio')[0], 404)
+            self.assertEqual(self.request('GET', '/demo-tracks/example/result')[0], 200)
+            code, headers, body = self.raw_request('GET', '/demo-tracks/example/audio?token=' + app.TOKEN,
+                                                   {'Range': 'bytes=2-4'})
+            self.assertEqual((code, headers['Content-Type'], body), (206, 'audio/mp4', b'234'))
+            source.write_bytes(b'changed')
+            self.assertEqual(self.request('GET', '/demo-tracks/example/result')[0], 409)
 
     def test_http_submit_poll_result_cancel_and_cached(self):
         code, job = self.request('POST', '/jobs', b'wait')

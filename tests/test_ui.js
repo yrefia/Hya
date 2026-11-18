@@ -5,10 +5,11 @@ const source=fs.readFileSync(path.join(__dirname,'../web/ui.html'),'utf8').split
 function harness(responses){
  const requests=[],downloads=[],elements={},listeners={};
  const ctx=new Proxy({},{get:()=>()=>{},set:()=>true});
- const element=id=>elements[id]||(elements[id]={value:id==='mode'?'ml':'',checked:true,currentTime:0,getBoundingClientRect:()=>({width:800,height:600}),getContext:()=>ctx,pause(){},load(){},getAttribute(key){return this[key]},removeAttribute(key){delete this[key]},toBlob(callback){callback(new Blob(['png']))}});
+ const element=id=>elements[id]||(elements[id]={value:id==='mode'?'ml':'',checked:true,currentTime:0,hidden:true,replaceChildren(...children){this.children=children},getBoundingClientRect:()=>({width:800,height:600}),getContext:()=>ctx,pause(){},load(){},getAttribute(key){return this[key]},removeAttribute(key){delete this[key]},toBlob(callback){callback(new Blob(['png']))}});
  const document={getElementById:element,createElement:()=>({click(){downloads.push(this.download)}})};
  const box={window:{addEventListener(name,fn){listeners[name]=fn}},document,location:{search:'?token=test'},URLSearchParams,Blob,devicePixelRatio:1,matchMedia:()=>({matches:false}),requestAnimationFrame:()=>{},setTimeout:fn=>{queueMicrotask(fn);return 1},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL:()=>{}},fetch:async(path,options={})=>{requests.push({path,options});const next=responses.shift();assert(next,`Unexpected fetch ${path}`);if(typeof next==='function')return next(path,options);return {ok:next.ok!==false,status:next.status||200,json:async()=>next.body??next}}};
- vm.createContext(box);vm.runInContext(source,box);return {box,elements,requests,downloads,listeners,run:code=>vm.runInContext(code,box),chooseTrack(value){const target=element('trackChoice');target.value=value;return target.onchange({target})}};
+ box.Option=class {constructor(textContent,value){Object.assign(this,{textContent,value})}};
+ vm.createContext(box);vm.runInContext(source,box);return {box,elements,requests,downloads,listeners,run:code=>vm.runInContext(code,box),chooseTrack(value){const target=element('trackChoice');target.value=value;target.selectedOptions=(elements.localDemos?.children||[]).filter(option=>option.value===value);return target.onchange({target})}};
 }
 const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centroid:400}],tracks:{vocals:{notes:[]},bass:{notes:[]},drums:{onsets:[]}},warnings:['分轨可能存在泄漏']};
 (async()=>{
@@ -42,14 +43,17 @@ const result={version:'hya-ml-2',duration:3,frames:[{t:0,rms:.1,energy:.5,centro
  h=harness([()=>({ok:false,status:413,json:async()=>{throw new SyntaxError('bad json')}})]);
  await h.run("load(new Blob(['audio']), 'large.flac')");assert.match(h.elements.status.textContent,/拒绝了过大的音频上传/);
  h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}}]);await h.listeners.DOMContentLoaded();assert.match(h.elements.status.textContent,/默认曲目不存在/);assert.equal(h.elements.file.disabled,false);
- // The dropdown also retries the same selection and respects the analysis mode.
+ // The dropdown can retry the same selection and starts cached demos without analysis jobs.
  h=harness([{ok:false,status:404,body:{error:'默认曲目不存在'}},{name:'song'},result]);
  await h.chooseTrack('default');assert.equal(h.elements.trackChoice.value,'');
  await h.chooseTrack('default');assert.deepEqual(h.requests.map(r=>r.path),['/default','/default','/default/result']);
- h=harness([{...result,tracks:undefined}]);h.elements.mode.value='quick';
- const synthetic=h.chooseTrack('synthetic');assert.equal(h.elements.trackChoice.disabled,true);
- await synthetic;assert.equal(h.requests[0].path,'/analyze');assert.equal(h.requests[0].options.body.type,'audio/wav');
- assert.match(h.elements.songName.textContent,/合成示例/);assert.equal(h.elements.trackChoice.disabled,false);
+ h=harness([[{id:'rubia',name:'周深 · Rubia'}],result]);
+ await h.run("$('more').onclick()");
+ assert.equal(h.elements.localDemos.hidden,false);assert.equal(h.elements.localDemos.children[0].value,'local:rubia');
+ const demo=h.chooseTrack('local:rubia');assert.equal(h.elements.trackChoice.disabled,true);
+ await demo;assert.deepEqual(h.requests.map(r=>r.path),['/demo-tracks','/demo-tracks/rubia/result']);
+ assert.equal(h.elements.audio.src,'/demo-tracks/rubia/audio?token=test');
+ assert.equal(h.elements.songName.textContent,'周深 · Rubia');assert.equal(h.elements.trackChoice.disabled,false);
  // Standard fixtures use real cached transcription, never upload or synthetic truth as predictions.
  const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/demos/pure.json'),'utf8'));
  h=harness([fixture]);await h.chooseTrack('pure');
