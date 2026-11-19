@@ -57,7 +57,7 @@ body{overflow:hidden;background-position:center center}main{max-width:none;paddi
 <p class="hint" id="modeHint">默认曲目自动加载；已缓存的分析可直接复用。新曲目先在本机完成六轨分析。</p>
 <div class="scene-options"><label><input id="guides" type="checkbox" checked>MIDI 参考</label><label><input id="spectrum" type="checkbox" checked>实时频谱</label><small id="spectrumStatus">播放后显示频谱</small></div>
 <details id="referencePanel" class="panel" hidden><summary>标准答案与旋律对照</summary><p class="hint">C5 D5 E5 G5 · E5 D5 C5 C5（MIDI：72 74 76 79 · 76 74 72 72）。中间含休止；下列所选音高取每个音符的中点，不代表整段准确率。</p><pre id="referenceNotes" style="white-space:pre-wrap;font-size:12px"></pre></details>
-<details id="rawTracks" class="panel timeline"><summary>查看原始六轨 · MIDI 音符与起音</summary><div class="eyebrow">SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽与颜色明暗表示能量。</small></details>
+<details id="rawTracks" class="panel timeline"><summary>查看原始六轨 · MIDI 音符与起音</summary><div class="eyebrow">SIX STEMS · ONE TIMELINE</div><canvas id="finger" aria-label="六轨同步时间线：四轨音符、鼓点脉冲与其他声部能量带"></canvas><label id="candidateControl" hidden><input id="candidates" type="checkbox">显示未确认事件</label> <small id="legend">音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。</small></details>
 <details id="acoustics" class="panel acoustics"><summary>原曲声学信息 · 能量与频谱重心</summary><canvas id="charts" aria-label="原曲能量与频谱重心随时间变化曲线"></canvas><div class="stats"><div><b id="duration">—</b><span>时长 / 秒</span></div><div><b id="centroid">—</b><span>当前频谱重心 / Hz</span></div><div><b id="energy">—</b><span>当前 RMS / dBFS</span></div></div></details>
 <p class="hint" id="warnings"></p>
 <p id="limits">旋律线根据音区与前后衔接追踪候选声部，钢琴偏向上声部；不保证等同于人听出的主旋律。鼓与其他声部表示起音和能量；静音时不绘制曲线。右侧笔尖固定，左侧展示最近 10 秒。</p>
@@ -75,26 +75,6 @@ const lanes=[
  {id:'drums',label:'鼓',kind:'onsets',color:'#e8a18d'},
  {id:'other',label:'未归类残余',kind:'energy',color:'#87c8d4'}
 ];
-// Keep even quiet traces luminous against the lake reflection.
-const hues={vocals:44,bass:142,piano:207,guitar:287,drums:14,other:179};
-function hsvColor(hue,saturation,value){
- const channel=n=>{
-  const k=(n+hue/60)%6;
-  return Math.round(255*value*(1-saturation*Math.max(0,Math.min(k,4-k,1))));
- };
- return 'rgb('+[5,3,1].map(channel).join(',')+')';
-}
-for(const lane of lanes){
- lane.palette=Array.from({length:32},(_,i)=>{
-  const level=i/31;
-  return hsvColor(hues[lane.id],.69-.37*level,.88+.12*level);
- });
-}
-function frameColor(lane,frames,time){
- if(!frames?.length)return lane.color;
- const energy=nearestFrame(frames,time).energy??0;
- return lane.palette[Math.round(31*Math.max(0,Math.min(1,(60*energy+5)/57)))];
-}
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)$('motion').checked=false;
 // All stems share one pitch space. The pen has a fixed x; history lies to its left.
 let melodies={},audioContext=null,analyser=null,spectrumBins=null,mediaSource=null;
@@ -221,13 +201,13 @@ function drawForeground(c,lane,data,time,xAt,yAt,drumBase,height){
  if(lane.id==='drums'){
   c.globalAlpha=.6;c.font='11px sans-serif';c.textAlign='left';
   c.fillText('鼓点',xAt(time-10),drumBase);c.globalAlpha=1;
+  c.beginPath();
   for(const hit of data.accents){
    if(hit.t<start||hit.t>time)continue;
    const x=xAt(hit.t);
-   c.strokeStyle=lane.palette[hit.level]??frameColor(lane,result.tracks.drums.frames,hit.t);
-   c.beginPath();c.moveTo(x,drumBase);c.lineTo(x,drumBase-4-height*.065*Math.sqrt(hit.strength));c.stroke();
+   c.moveTo(x,drumBase);c.lineTo(x,drumBase-4-height*.065*Math.sqrt(hit.strength));
   }
-  return;
+  c.stroke();return;
  }
  const track=data.tracks[lane.id];
  for(const note of track.notes){
@@ -235,21 +215,14 @@ function drawForeground(c,lane,data,time,xAt,yAt,drumBase,height){
   if(note.end<=start)continue;
   const first=Math.max(note.start,start),last=Math.min(time,note.end);
   const y=at=>yAt(foregroundPitch(note,track,data.step,at));
-  const colorAt=at=>{
-   const sample=Math.floor((at-note.start)/data.step+1e-8);
-   const index=Math.max(0,Math.min(note.samples.length-1,sample));
-   return lane.palette[note.levels?.[index]]??frameColor(lane,result.tracks[lane.id].frames,at);
-  };
-  let currentColor=colorAt(first);c.strokeStyle=currentColor;c.beginPath();c.moveTo(xAt(first),y(first));
+  c.beginPath();c.moveTo(xAt(first),y(first));
   for(let i=Math.floor((first-note.start)/data.step)+1;i<note.samples.length;i++){
    const at=note.start+i*data.step;
    if(at>=last)break;
-   const x=xAt(at),pitchY=y(at),color=colorAt(at);
-   c.lineTo(x,pitchY);
-   if(currentColor!==color){currentColor=color;c.stroke();c.beginPath();c.moveTo(x,pitchY);c.strokeStyle=color}
+   c.lineTo(xAt(at),y(at));
   }
   c.lineTo(xAt(last),y(last));c.stroke();
-  if(time<note.end){c.fillStyle=colorAt(time);c.beginPath();c.arc(xAt(time),y(time),3,0,Math.PI*2);c.fill()}
+  if(time<note.end){c.beginPath();c.arc(xAt(time),y(time),3,0,Math.PI*2);c.fill()}
  }
 }
 function drawScene(){
@@ -281,7 +254,6 @@ function drawScene(){
    c.fillStyle=lane.color;
    for(const note of notes){
     if(note.end<t-10||note.start>t+2)continue;
-    c.fillStyle=frameColor(lane,track.frames,note.start);
     c.globalAlpha=note.status ? .04 : .14;
     c.fillRect(xAt(note.start),yAt(note.pitch)-2,Math.max(2,xAt(note.end)-xAt(note.start)),4);
    }
@@ -293,22 +265,18 @@ function drawScene(){
  for(const lane of visible){
   if(result.foreground){drawForeground(c,lane,result.foreground,t,xAt,yAt,h*.935,h);continue}
   c.strokeStyle=lane.color;c.lineWidth=2;c.lineJoin='round';c.lineCap='round';c.shadowColor=lane.color;c.shadowBlur=8;
-  c.beginPath();let connected=false,lineColor=lane.color;
-  const stemFrames=result.tracks?.[lane.id]?.frames;
+  c.beginPath();let connected=false;
   const first=Math.max(0,Math.ceil((t-10)/melodyStep));
   for(let i=first;i*melodyStep<t;i++){
    const at=i*melodyStep,p=scenePoint(lane,at);
    if(!p){connected=false;continue}
    const x=xAt(at),y=yAt(p.pitch);
-   const color=frameColor(lane,stemFrames,at);
-   if(connected)c.lineTo(x,y);else c.moveTo(x,y);
-   if(color!==lineColor){c.stroke();c.beginPath();c.moveTo(x,y);lineColor=color;c.strokeStyle=color}
-   connected=true;
+   if(connected)c.lineTo(x,y);else c.moveTo(x,y);connected=true;
   }
   const current=scenePoint(lane,t);
   if(current){if(connected)c.lineTo(pen,yAt(current.pitch));else c.moveTo(pen,yAt(current.pitch))}
   c.stroke();
-  if(current){c.strokeStyle=c.fillStyle=frameColor(lane,stemFrames,t);c.beginPath();c.arc(pen,yAt(current.pitch),3.5,0,Math.PI*2);c.fill()}
+  if(current){c.fillStyle=lane.color;c.beginPath();c.arc(pen,yAt(current.pitch),3.5,0,Math.PI*2);c.fill()}
  }
  c.restore();c.shadowBlur=0;c.globalAlpha=1;c.fillStyle='#e5dcf2';c.font='11px sans-serif';c.textAlign='right';c.fillText(t.toFixed(1)+' s',pen,h*.97);
 }
@@ -357,8 +325,7 @@ function draw(staticOnly=false){
     if(note.end<start||note.start>until)continue;
     const x=xAt(Math.max(start,note.start)),end=xAt(Math.min(until,note.end));
     if(end<=x)continue;
-    c.fillStyle=frameColor(lane,track.frames,(note.start+note.end)/2);
-    c.globalAlpha=note.status ? .25 : 1;
+    c.globalAlpha=note.status ? .25 : .45+.55*Math.max(0,Math.min(1,note.amplitude??.5));
     c.fillRect(x,yAt(note.pitch)-2,Math.max(1,end-x),4);
    }
    c.globalAlpha=1;
@@ -369,8 +336,8 @@ function draw(staticOnly=false){
     if(event.t<start||event.t>until)continue;
     c.globalAlpha=event.status ? .25 : 1;
     const x=xAt(event.t),height=3+Math.max(0,Math.min(1,event.strength))*(laneHeight-35);
-    c.strokeStyle=c.fillStyle=lane.palette[event.level]??frameColor(lane,track.frames,event.t);c.lineWidth=2;c.beginPath();c.moveTo(x,base);c.lineTo(x,base-height);c.stroke();
-    c.beginPath();c.arc(x,base-height,2,0,Math.PI*2);c.fill();
+    c.strokeStyle=lane.color;c.lineWidth=2;c.beginPath();c.moveTo(x,base);c.lineTo(x,base-height);c.stroke();
+    c.fillStyle=lane.color;c.beginPath();c.arc(x,base-height,2,0,Math.PI*2);c.fill();
    }
    c.globalAlpha=1;
   }else if(ml){
@@ -380,7 +347,7 @@ function draw(staticOnly=false){
     if(next<start||frame.t>until)continue;
     const x=xAt(Math.max(start,frame.t)),end=xAt(Math.min(until,next));
     const height=Math.max(0,Math.min(1,frame.energy))*(laneHeight-28);
-    c.fillStyle=frameColor(lane,data,frame.t);
+    c.fillStyle=`hsl(${195-45*Math.min(1,frame.centroid/6000)} 46% 65%)`;
     c.fillRect(x,middle-height/2,Math.max(1,end-x),height);
    }
   }else{
@@ -437,7 +404,7 @@ const defaultLimits=$('limits').textContent;
 function showResult(data){
  if(!data||!Number.isFinite(data.duration)||!Array.isArray(data.frames))throw Error('分析数据不完整，请重新预缓存');
  result=data;
- $('limits').textContent=data.foreground?'Rubia · 前景线追踪分轨电平起音与音高，人声单线，乐器可同时显示多个音。同一声部越亮，电平越高；底部竖线越长，鼓起音越强。淡色音符块来自 Basic Pitch。':defaultLimits;
+ $('limits').textContent=data.foreground?'Rubia · 前景线追踪分轨电平起音与音高，人声单线，乐器可同时显示多个音。底部竖线越长，鼓起音越强。淡色音符块来自 Basic Pitch。':defaultLimits;
  prepareMelodies();
  $('referencePanel').hidden=!data.reference_melody;
  if(data.reference_melody){
@@ -450,7 +417,7 @@ function showResult(data){
  $('candidateControl').hidden=!result.tracks||result.piano_solo||!Object.values(result.tracks).some(
   track=>track.note_candidates?.length||track.onset_candidates?.length);
  $('warnings').textContent=(result.warnings||[]).join(' ');
- $('legend').textContent=result.piano_solo?'钢琴独奏 · 音符条的高度为音高，长度为时长。':result.tracks?'音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽与颜色明暗表示能量。':'金色：旋律候选；绿色：低音伴随候选。来自混合音频的频谱估计，不代表分轨。';
+ $('legend').textContent=result.piano_solo?'钢琴独奏 · 音符条的高度为音高，长度为时长。':result.tracks?'音符条：纵向为音高、长度为时长；鼓点：脉冲高度为起音强度；未归类残余：带宽为能量、颜色为频谱明亮度。':'金色：旋律候选；绿色：低音伴随候选。来自混合音频的频谱估计，不代表分轨。';
  draw();
 }
 function showJob(job){
