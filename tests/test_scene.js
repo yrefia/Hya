@@ -24,15 +24,14 @@ assert.equal(run('scenePoint(lanes[0],.5).pitch'),60,'continuous upper voice is 
 run('result.piano_solo=true');assert.deepEqual(render(1.5).dots.map(d=>d.color),[blue]);
 run("result={duration:2,frames:[],tracks:{vocals:{notes:[],note_candidates:[{start:0,end:2,pitch:80}]}}};prepareMelodies()");assert.equal(render(1).dots.length,0,'uncertain candidates never become melody');
 console.log('PASS: fixed pen, vertical pitch movement, shared layers, six colors, past-only paths, pause/seek, silence, solo and candidates');
-const frontNote=(pitch)=>({pitch,start:0,end:1,samples:Array(50).fill(pitch),levels:Array.from({length:50},(_,i)=>i<20?5:25)});
+const frontNote=(pitch)=>({pitch,start:0,end:1,samples:Array(50).fill(pitch)});
 const fgTracks=Object.fromEntries(['vocals','bass','piano','guitar','other'].map(id=>[id,{glide:0,notes:[]}]));
 fgTracks.other.notes=[frontNote(55),frontNote(67)];
 fgTracks.vocals.notes=[frontNote(60)];
-run('result='+JSON.stringify({duration:2,frames:[],tracks,foreground:{step:.02,tracks:fgTracks,accents:[{t:.1,strength:.12,level:5},{t:.3,strength:.9,level:25}]}})+';prepareMelodies()');
+run('result='+JSON.stringify({duration:2,frames:[],tracks,foreground:{step:.02,tracks:fgTracks,accents:[{t:.1,strength:.4},{t:.3,strength:.9}]}})+';prepareMelodies()');
 const fg=render(.5);
 assert.equal(fg.dots.length,3);
 assert.equal(fg.dots.filter(d=>d.color==='#87c8d4').length,2);
-assert.equal(dot(render(.2),gold).color,dot(fg,gold).color,'quiet and loud vocals use the original gold');
 const marks=fg.strokes.find(s=>s.color==='#e8a18d').points;
 assert.equal(marks.length,4);
 assert.equal(marks[0][0],marks[1][0]);
